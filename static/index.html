@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <title>WebRTC – Web Client ↔ STUN ↔ Python</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .time-value {
+      margin-left: 2px;
+      font-size: 0.65rem;
+      color: #555;
+    }
+    h1 {
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      margin-top: 2rem;
+    }
+
+    /* --- BOVENSTE BLOKKEN ------------------------------------------------- */
+
+    .diagram {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      margin: 1.5rem 0;
+    }
+
+    .node {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 0.75rem;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+      font-weight: 600;
+      position: relative;
+      flex: 0 0 30%;
+    }
+
+    .node span {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    .lane-label {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    /* --- LIJNEN & LIFELINES ONDER DE BLOKKEN ------------------------------ */
+
+    .arrows {
+      position: relative;
+      margin-top: 1rem;
+      height: 160px; /* ruimte voor alle pijlen */
+      font-size: 0.8rem;
+    }
+
+    /* verticale lifelines */
+    .lifeline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 0;
+    }
+
+    .lifeline-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-left: 2px dotted #cbd5f5;
+    }
+
+    .time-axis-label {
+      position: absolute;
+      top: -1.6rem;
+      left: -0.4rem;
+      font-size: 0.7rem;
+      color: #666;
+      font-weight: 600;
+    }
+
+    .time-tick {
+      position: absolute;
+      left: -0.8rem;
+      font-size: 0.7rem;
+      color: #999;
+    }
+
+    /* lifeline posities (centra van de drie kolommen) */
+    .lifeline-web    { left: 16%; }
+    .lifeline-stun   { left: 50%; }
+    .lifeline-python { left: 84%; }
+
+    /* horizontale pijlen */
+    .arrow {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      opacity: 0.25;
+      transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+      font-family: monospace;
+    }
+
+    .arrow-line {
+      border-top: 2px dashed #555;
+      position: relative;
+      width: 100%;
+    }
+
+    .arrow-line::after {
+      content: "▶";
+      position: absolute;
+      right: -0.25rem;
+      top: -0.9rem;
+      font-size: 1rem;
+    }
+
+    .arrow.reverse .arrow-line::after {
+      content: "◀";
+      right: auto;
+      left: -0.25rem;
+    }
+
+    .arrow-label {
+      position: absolute;
+      top: -1.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    /* Animeren bij activatie */
+    .arrow.active {
+      opacity: 1;
+      transform: translateY(-2px);
+      animation: pulse 0.9s ease-out 1;
+    }
+
+    @keyframes pulse {
+      0%   { transform: translateY(-2px) scale(1.0); }
+      40%  { transform: translateY(-3px) scale(1.04); }
+      100% { transform: translateY(-2px) scale(1.0); }
+    }
+
+    /* Posities tussen de kolommen:
+       WEB centrum ~16%, STUN ~50%, PYTHON ~84%
+       – de tops komen overeen met de tijdstappen 1 t/m 5 op de lifeline
+    */
+
+    /* WEB → STUN */
+    #arrow-web-stun {
+      top: 15px;       /* tijd 1 */
+      left: 16%;
+      width: 34%;      /* 50% - 16% */
+    }
+
+    /* STUN → WEB */
+    #arrow-stun-web {
+      top: 45px;       /* tijd 2 */
+      left: 16%;
+      width: 34%;
+    }
+
+    /* WEB → PYTHON (offer JSON) */
+    #arrow-web-python {
+      top: 75px;       /* tijd 3 */
+      left: 16%;
+      width: 68%;      /* 84% - 16% */
+    }
+
+    /* PYTHON → WEB (answer JSON) */
+    #arrow-python-web {
+      top: 105px;      /* tijd 4 */
+      left: 16%;
+      width: 68%;
+    }
+
+    /* PYTHON ↔ STUN (server ICE) */
+    #arrow-python-stun {
+      top: 135px;      /* tijd 5 */
+      left: 50%;
+      width: 34%;      /* 84% - 50% */
+    }
+
+    /* --- CONTROLS & VIDEO ------------------------------------------------- */
+
+    #controls {
+      margin: 1rem 0;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(37,99,235,0.35);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    #video-row {
+      margin: 1rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    video {
+      width: 260px;
+      height: 190px;
+      background: #000;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+      margin-right: 1rem;
+    }
+
+    /* --- LOG -------------------------------------------------------------- */
+
+    #log {
+      border-radius: 8px;
+      padding: 0.75rem;
+      height: 220px;
+      overflow-y: auto;
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      white-space: pre-wrap;
+      background: #0b1020;
+      color: #d6e4ff;
+      font-size: 0.8rem;
+    }
+
+    .log-line {
+      opacity: 0;
+      transform: translateY(4px);
+      animation: log-enter 0.18s ease-out forwards;
+    }
+
+    @keyframes log-enter {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .log-tag {
+      display: inline-block;
+      min-width: 110px;
+      font-weight: 600;
+    }
+
+    .tag-web { color: #38bdf8; }
+    .tag-stun { color: #a855f7; }
+    .tag-python { color: #4ade80; }
+    .tag-join { color: #facc15; }
+
+    /* Mobiel: blokken onder elkaar, pijlen en lifelines weglaten */
+    @media (max-width: 800px) {
+      .diagram {
+        flex-direction: column;
+      }
+      .arrows {
+        display: none;
+      }
+      video {
+        margin-bottom: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<h1>WebRTC sequence: Web Client → STUN → Python</h1>
+<p>
+  Druk op <strong>Start WebRTC flow</strong> en kijk hoe diagram, lifelines en log
+  exact de stappen in je tekening volgen. De getallen 1–5 op de lifeline
+  corresponderen met de horizontale pijlen.
+</p>
+
+<section class="diagram">
+  <div>
+    <div id="node-web" class="node">
+      WEB CLIENT
+      <span>Browser (JavaScript)</span>
+    </div>
+    <div class="lane-label">SDP + ICE offer</div>
+  </div>
+  <div>
+    <div id="node-stun" class="node">
+      STUN SERVER
+      <span>stun:stun.l.google.com:19302</span>
+    </div>
+    <div class="lane-label">ICE discovery</div>
+  </div>
+  <div>
+    <div id="node-python" class="node">
+      PYTHON WEBRTC
+      <span>aiortc RTCPeerConnection</span>
+    </div>
+    <div class="lane-label">SDP answer + ICE</div>
+  </div>
+</section>
+
+<section class="arrows">
+   <!-- Lifelines -->
+  <div class="lifeline lifeline-web">
+    <div class="lifeline-line"></div>
+    <div class="time-axis-label">tijd</div>
+    <!-- ticks op dezelfde hoogte als de pijlen -->
+    <div class="time-tick" style="top: 15px;">
+      1<span id="time1" class="time-value"></span>
+    </div>
+    <div class="time-tick" style="top: 45px;">
+      2<span id="time2" class="time-value"></span>
+    </div>
+    <div class="time-tick" style="top: 75px;">
+      3<span id="time3" class="time-value"></span>
+    </div>
+    <div class="time-tick" style="top: 105px;">
+      4<span id="time4" class="time-value"></span>
+    </div>
+    <div class="time-tick" style="top: 135px;">
+      5<span id="time5" class="time-value"></span>
+    </div>
+  </div>
+  <div class="lifeline lifeline-stun">
+    <div class="lifeline-line"></div>
+  </div>
+  <div class="lifeline lifeline-python">
+    <div class="lifeline-line"></div>
+  </div>
+
+  <!-- WEB → STUN -->
+  <div class="arrow" id="arrow-web-stun">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">WEB CLIENT → STUN (ICE gathering)</div>
+  </div>
+
+  <!-- STUN → WEB -->
+  <div class="arrow reverse" id="arrow-stun-web">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">STUN → WEB CLIENT (candidates)</div>
+  </div>
+
+  <!-- WEB → PYTHON (signaling / offer JSON) -->
+  <div class="arrow" id="arrow-web-python">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">WEB CLIENT → PYTHON (offer JSON)</div>
+  </div>
+
+  <!-- PYTHON → WEB (answer JSON) -->
+  <div class="arrow reverse" id="arrow-python-web">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">PYTHON → WEB CLIENT (answer JSON)</div>
+  </div>
+
+  <!-- PYTHON ↔ STUN -->
+  <div class="arrow" id="arrow-python-stun">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">PYTHON ↔ STUN (ICE gathering)</div>
+  </div>
+</section>
+
+<section id="controls">
+  <button id="startBtn">Start WebRTC flow</button>
+</section>
+
+<section id="video-row">
+  <div>
+    <div style="font-size:0.8rem; margin-bottom:0.25rem;">Local stream (WEB CLIENT)</div>
+    <video id="localVideo" autoplay playsinline muted></video>
+  </div>
+  <div>
+    <div style="font-size:0.8rem; margin-bottom:0.25rem;">Remote stream (from PYTHON)</div>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
+</section>
+
+<h2>Timeline log</h2>
+<div id="log"></div>
+
+<script>
+  const logEl = document.getElementById('log');
+  const startBtn = document.getElementById('startBtn');
+  const localVideo = document.getElementById('localVideo');
+  const remoteVideo = document.getElementById('remoteVideo');
+
+  const arrows = {
+    'web-stun': document.getElementById('arrow-web-stun'),
+    'stun-web': document.getElementById('arrow-stun-web'),
+    'web-python': document.getElementById('arrow-web-python'),
+    'python-web': document.getElementById('arrow-python-web'),
+    'python-stun': document.getElementById('arrow-python-stun'),
+  };
+
+  // Time measurement
+  let startTime = null;
+  const timeElements = {
+    time1: document.getElementById('time1'),
+    time2: document.getElementById('time2'),
+    time3: document.getElementById('time3'),
+    time4: document.getElementById('time4'),
+    time5: document.getElementById('time5'),
+  };
+
+  function setTimeValue(timeId) {
+    if (!startTime) {
+      startTime = performance.now();
+    }
+    const elapsed = performance.now() - startTime;
+    const el = timeElements[timeId];
+    if (el) {
+      el.textContent = `(${elapsed.toFixed(0)}ms)`;
+    }
+  }
+
+  function activateArrow(name) {
+    const el = arrows[name];
+    if (!el) return;
+    el.classList.remove('active');
+    // reflow for opnieuw starten animatie
+    void el.offsetWidth;
+    el.classList.add('active');
+  }
+
+  function addLog(tag, message, tagClass) {
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    const span = document.createElement('span');
+    span.className = 'log-tag ' + (tagClass || '');
+    span.textContent = '[' + tag + '] ';
+    line.appendChild(span);
+    line.appendChild(document.createTextNode(message));
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  startBtn.onclick = async () => {
+    startBtn.disabled = true;
+    logEl.textContent = '';
+    Object.values(arrows).forEach(a => a.classList.remove('active'));
+    
+    // Reset time measurements
+    startTime = null;
+    Object.values(timeElements).forEach(el => el.textContent = '');
+    
+    try {
+      await startWebRTCFlow();
+    } catch (e) {
+      console.error(e);
+      addLog('ERROR', String(e), 'tag-join');
+      startBtn.disabled = false;
+    }
+  };
+
+  async function startWebRTCFlow() {
+    // 1. Local media
+    addLog('WEB CLIENT', 'Requesting camera/mic…', 'tag-web');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    localVideo.srcObject = stream;
+
+    // 2. PeerConnection met STUN
+    addLog('WEB CLIENT', 'Creating RTCPeerConnection with STUN server…', 'tag-web');
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+    pc.addEventListener('track', event => {
+      addLog('WEB CLIENT', 'Received remote track from PYTHON WEBRTC.', 'tag-web');
+      if (remoteVideo.srcObject !== event.streams[0]) {
+        remoteVideo.srcObject = event.streams[0];
+      }
+    });
+
+    pc.addEventListener('icegatheringstatechange', () => {
+      addLog('WEB CLIENT', 'ICE gathering state: ' + pc.iceGatheringState, 'tag-web');
+      if (pc.iceGatheringState === 'gathering') {
+        setTimeValue('time1');
+        addLog('WEB ↔ STUN', 'Browser starts contacting STUN for ICE candidates. (tijd 1)', 'tag-stun');
+        activateArrow('web-stun');
+      }
+      if (pc.iceGatheringState === 'complete') {
+        setTimeValue('time2');
+        addLog('STUN → WEB', 'ICE gathering complete; candidates now known in the browser. (tijd 2)', 'tag-stun');
+        activateArrow('stun-web');
+      }
+    });
+
+    pc.addEventListener('icecandidate', event => {
+      if (event.candidate) {
+        addLog('WEB CLIENT', 'New ICE candidate: ' + event.candidate.candidate, 'tag-web');
+      }
+    });
+
+    pc.addEventListener('connectionstatechange', () => {
+      addLog('CONNECTION', 'State changed to: ' + pc.connectionState, 'tag-join');
+    });
+
+    // 3. Offer creëren
+    setTimeValue('time3');
+    addLog('WEB CLIENT', 'Creating SDP offer… (tijd 3)', 'tag-web');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // wachten tot ICE klaar is
+    while (pc.iceGatheringState !== 'complete') {
+      await new Promise(r => setTimeout(r, 80));
+    }
+
+    // 4. Offer + ICE naar Python
+    addLog('SIGNALING', 'Sending offer (SDP + ICE) as JSON to PYTHON backend /offer… (tijd 3)', 'tag-join');
+    activateArrow('web-python');
+
+    const response = await fetch('/offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sdp: pc.localDescription.sdp,
+        type: pc.localDescription.type
+      })
+    });
+
+    setTimeValue('time5');
+    addLog('PYTHON WEBRTC', 'Backend receives offer, creates answer and gathers its own ICE. (tijd 5)', 'tag-python');
+    activateArrow('python-stun');
+
+    const answer = await response.json();
+    setTimeValue('time4');
+    addLog('SIGNALING', 'Received answer from PYTHON; applying as remote description. (tijd 4)', 'tag-join');
+    activateArrow('python-web');
+
+    await pc.setRemoteDescription(answer);
+
+    addLog('WEB CLIENT', 'Negotiation finished. Waiting for ICE connection to become "connected".', 'tag-web');
+  }
+</script>
+</body>
+</html>
