@@ -112,11 +112,7 @@ async def offer(request: web.Request):
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    # ICE gathering laten afronden zodat STUN-stap goed zichtbaar is
-    while pc.iceGatheringState != "complete":
-        await asyncio.sleep(0.1)
-
-    print("[PYTHON] Sending answer back to WEB CLIENT")
+    print("[PYTHON] Sending answer back to WEB CLIENT (ICE will continue gathering)")
 
     response = {
         "sdp": pc.localDescription.sdp,

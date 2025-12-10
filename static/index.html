@@ -65,7 +65,7 @@
     .arrows {
       position: relative;
       margin-top: 1rem;
-      height: 160px; /* ruimte voor alle pijlen */
+      height: 190px; /* ruimte voor alle pijlen + background ICE */
       font-size: 0.8rem;
     }
 
@@ -189,11 +189,29 @@
       width: 68%;
     }
 
-    /* PYTHON ↔ STUN (server ICE) */
+    /* PYTHON ↔ STUN (server ICE - background) */
     #arrow-python-stun {
       top: 135px;      /* tijd 5 */
       left: 50%;
       width: 34%;      /* 84% - 50% */
+    }
+
+    /* WEB ↔ PYTHON (ICE connection - after answer) */
+    #arrow-ice-connect {
+      top: 165px;      /* tijd 6 */
+      left: 16%;
+      width: 68%;
+    }
+
+    .arrow.bidirectional .arrow-line {
+      border-top: 2px solid #10b981;
+    }
+
+    .arrow.bidirectional .arrow-line::after {
+      content: "↔";
+      font-size: 1.2rem;
+      right: 50%;
+      transform: translateX(50%);
     }
 
     /* --- CONTROLS & VIDEO ------------------------------------------------- */
@@ -340,6 +358,9 @@
     <div class="time-tick" style="top: 135px;">
       5<span id="time5" class="time-value"></span>
     </div>
+    <div class="time-tick" style="top: 165px;">
+      6<span id="time6" class="time-value"></span>
+    </div>
   </div>
   <div class="lifeline lifeline-stun">
     <div class="lifeline-line"></div>
@@ -375,7 +396,13 @@
   <!-- PYTHON ↔ STUN -->
   <div class="arrow" id="arrow-python-stun">
     <div class="arrow-line"></div>
-    <div class="arrow-label">PYTHON ↔ STUN (ICE gathering)</div>
+    <div class="arrow-label">PYTHON ↔ STUN (ICE gathering - background)</div>
+  </div>
+
+  <!-- WEB ↔ PYTHON (ICE connection established) -->
+  <div class="arrow bidirectional" id="arrow-ice-connect">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">WEB CLIENT ↔ PYTHON (ICE connected)</div>
   </div>
 </section>
 
@@ -409,6 +436,7 @@
     'web-python': document.getElementById('arrow-web-python'),
     'python-web': document.getElementById('arrow-python-web'),
     'python-stun': document.getElementById('arrow-python-stun'),
+    'ice-connect': document.getElementById('arrow-ice-connect'),
   };
 
   // Time measurement
@@ -419,6 +447,7 @@
     time3: document.getElementById('time3'),
     time4: document.getElementById('time4'),
     time5: document.getElementById('time5'),
+    time6: document.getElementById('time6'),
   };
 
   function setTimeValue(timeId) {
@@ -512,6 +541,15 @@
       }
     });
 
+    pc.addEventListener('iceconnectionstatechange', () => {
+      addLog('ICE CONNECTION', 'ICE state: ' + pc.iceConnectionState, 'tag-join');
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setTimeValue('time6');
+        addLog('WEB ↔ PYTHON', 'ICE connection established! Media can now flow. (tijd 6)', 'tag-join');
+        activateArrow('ice-connect');
+      }
+    });
+
     pc.addEventListener('connectionstatechange', () => {
       addLog('CONNECTION', 'State changed to: ' + pc.connectionState, 'tag-join');
     });
@@ -522,13 +560,8 @@
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // wachten tot ICE klaar is
-    while (pc.iceGatheringState !== 'complete') {
-      await new Promise(r => setTimeout(r, 80));
-    }
-
-    // 4. Offer + ICE naar Python
-    addLog('SIGNALING', 'Sending offer (SDP + ICE) as JSON to PYTHON backend /offer… (tijd 3)', 'tag-join');
+    // Direct versturen - NIET wachten op ICE (trickle ICE!)
+    addLog('SIGNALING', 'Sending offer as JSON to PYTHON backend /offer… (tijd 3)', 'tag-join');
     activateArrow('web-python');
 
     const response = await fetch('/offer', {
@@ -540,18 +573,19 @@
       })
     });
 
-    setTimeValue('time5');
-    addLog('PYTHON WEBRTC', 'Backend receives offer, creates answer and gathers its own ICE. (tijd 5)', 'tag-python');
-    activateArrow('python-stun');
-
     const answer = await response.json();
     setTimeValue('time4');
     addLog('SIGNALING', 'Received answer from PYTHON; applying as remote description. (tijd 4)', 'tag-join');
     activateArrow('python-web');
 
+    // Show Python ICE gathering (happens during/after answer)
+    setTimeValue('time5');
+    addLog('PYTHON WEBRTC', 'Python ICE gathering in background (check server console). (tijd 5)', 'tag-python');
+    activateArrow('python-stun');
+
     await pc.setRemoteDescription(answer);
 
-    addLog('WEB CLIENT', 'Negotiation finished. Waiting for ICE connection to become "connected".', 'tag-web');
+    addLog('WEB CLIENT', 'Answer applied. ICE negotiation ongoing in background (trickle ICE)...', 'tag-web');
   }
 </script>
 </body>
