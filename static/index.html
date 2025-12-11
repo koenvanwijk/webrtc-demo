@@ -42,7 +42,7 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.06);
       font-weight: 600;
       position: relative;
-      flex: 0 0 30%;
+      flex: 0 0 18%;
     }
 
     .node span {
@@ -65,7 +65,7 @@
     .arrows {
       position: relative;
       margin-top: 1rem;
-      height: 250px; /* ruimte voor alle pijlen + trickle ICE */
+      height: 450px; /* ruimte voor alle pijlen inclusief TURN */
       font-size: 0.8rem;
     }
 
@@ -100,10 +100,12 @@
       color: #999;
     }
 
-    /* lifeline posities (centra van de drie kolommen) */
-    .lifeline-web    { left: 16%; }
-    .lifeline-stun   { left: 50%; }
-    .lifeline-python { left: 84%; }
+    /* lifeline posities (centra van de vijf kolommen) */
+    .lifeline-web       { left: 9%; }
+    .lifeline-signaling { left: 28%; }
+    .lifeline-stun      { left: 47%; }
+    .lifeline-turn      { left: 66%; }
+    .lifeline-python    { left: 85%; }
 
     /* horizontale pijlen */
     .arrow {
@@ -157,50 +159,105 @@
     }
 
     /* Posities tussen de kolommen:
-       WEB centrum ~16%, STUN ~50%, PYTHON ~84%
-       – de tops komen overeen met de tijdstappen 1 t/m 5 op de lifeline
+       WEB ~9%, SIGNALING ~28%, STUN ~47%, TURN ~66%, PYTHON ~85%
     */
 
-    /* WEB → STUN */
+    /* 1. WEB → STUN (ICE gathering) */
     #arrow-web-stun {
-      top: 15px;       /* tijd 1 */
-      left: 16%;
-      width: 34%;      /* 50% - 16% */
+      top: 15px;
+      left: 9%;
+      width: 38%;      /* 47% - 9% */
     }
 
-    /* STUN → WEB */
+    /* 2. STUN → WEB (candidates) */
     #arrow-stun-web {
-      top: 45px;       /* tijd 2 */
-      left: 16%;
-      width: 34%;
+      top: 45px;
+      left: 9%;
+      width: 38%;
     }
 
-    /* WEB → PYTHON (offer JSON) */
-    #arrow-web-python {
-      top: 75px;       /* tijd 3 */
-      left: 16%;
-      width: 68%;      /* 84% - 16% */
+    /* 3. WEB → TURN (request relay) */
+    #arrow-web-turn {
+      top: 75px;
+      left: 9%;
+      width: 57%;      /* 66% - 9% */
     }
 
-    /* PYTHON → WEB (answer JSON) */
-    #arrow-python-web {
-      top: 105px;      /* tijd 4 */
-      left: 16%;
-      width: 68%;
+    /* 4. TURN → WEB (relay allocated) */
+    #arrow-turn-web {
+      top: 105px;
+      left: 9%;
+      width: 57%;
     }
 
-    /* PYTHON ↔ STUN (server ICE - background) */
+    /* 5. WEB → SIGNALING (offer JSON) */
+    #arrow-web-signaling {
+      top: 135px;
+      left: 9%;
+      width: 19%;      /* 28% - 9% */
+    }
+
+    /* 6. SIGNALING → PYTHON (forward offer) */
+    #arrow-signaling-python {
+      top: 165px;
+      left: 28%;
+      width: 57%;      /* 85% - 28% */
+    }
+
+    /* 7. PYTHON → STUN (ICE gathering) */
     #arrow-python-stun {
-      top: 135px;      /* tijd 5 */
-      left: 50%;
-      width: 34%;      /* 84% - 50% */
+      top: 195px;
+      left: 47%;
+      width: 38%;      /* 85% - 47% */
     }
 
-    /* WEB ↔ PYTHON (ICE connection - after answer) */
+    /* 8. STUN → PYTHON (candidates) */
+    #arrow-stun-python {
+      top: 225px;
+      left: 47%;
+      width: 38%;
+    }
+
+    /* 9. PYTHON → TURN (request relay) */
+    #arrow-python-turn {
+      top: 255px;
+      left: 66%;
+      width: 19%;      /* 85% - 66% */
+    }
+
+    /* 10. TURN → PYTHON (relay allocated) */
+    #arrow-turn-python {
+      top: 285px;
+      left: 66%;
+      width: 19%;
+    }
+
+    /* 11. PYTHON → SIGNALING (answer JSON) */
+    #arrow-python-signaling {
+      top: 315px;
+      left: 28%;
+      width: 57%;
+    }
+
+    /* 12. SIGNALING → WEB (forward answer) */
+    #arrow-signaling-web {
+      top: 345px;
+      left: 9%;
+      width: 19%;
+    }
+
+    /* 13. WEB ↔ PYTHON (direct P2P if possible) */
     #arrow-ice-connect {
-      top: 165px;      /* tijd 6 */
-      left: 16%;
-      width: 68%;
+      top: 375px;
+      left: 9%;
+      width: 76%;      /* 85% - 9% */
+    }
+
+    /* 14. WEB ↔ TURN ↔ PYTHON (relay fallback) */
+    #arrow-relay-flow {
+      top: 405px;
+      left: 9%;
+      width: 76%;
     }
 
     .arrow.bidirectional .arrow-line {
@@ -212,35 +269,6 @@
       font-size: 1.2rem;
       right: 50%;
       transform: translateX(50%);
-    }
-
-    /* Trickle ICE arrows - dotted and smaller */
-    .arrow.trickle .arrow-line {
-      border-top: 1px dotted #9333ea;
-    }
-
-    .arrow.trickle .arrow-line::after {
-      font-size: 0.7rem;
-      color: #9333ea;
-    }
-
-    .arrow.trickle .arrow-label {
-      font-size: 0.7rem;
-      color: #9333ea;
-    }
-
-    /* Trickle ICE from WEB */
-    #arrow-trickle-web-python {
-      top: 195px;
-      left: 16%;
-      width: 68%;
-    }
-
-    /* Trickle ICE from PYTHON */
-    #arrow-trickle-python-web {
-      top: 220px;
-      left: 16%;
-      width: 68%;
     }
 
     /* --- CONTROLS & VIDEO ------------------------------------------------- */
@@ -316,9 +344,78 @@
     }
 
     .tag-web { color: #38bdf8; }
+    .tag-signaling { color: #fb923c; }
     .tag-stun { color: #a855f7; }
     .tag-python { color: #4ade80; }
     .tag-join { color: #facc15; }
+
+    /* NAT/Router visualization */
+    .network-layer {
+      display: flex;
+      justify-content: space-between;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 8px;
+      border: 2px dashed #94a3b8;
+    }
+
+    .network-zone {
+      flex: 1;
+      margin: 0 0.5rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      border: 2px solid #cbd5e1;
+      position: relative;
+    }
+
+    .network-zone.internet {
+      flex: 2;
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      border-color: #3b82f6;
+    }
+
+    .zone-label {
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    .nat-router {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 6px;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      font-size: 0.75rem;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .nat-type {
+      font-size: 0.65rem;
+      color: #dc2626;
+      font-weight: 400;
+      margin-top: 0.25rem;
+    }
+
+    .network-ip {
+      font-size: 0.7rem;
+      color: #475569;
+      font-family: monospace;
+      margin-top: 0.25rem;
+    }
+
+    .firewall-icon {
+      display: inline-block;
+      color: #dc2626;
+      font-size: 1rem;
+      margin-right: 0.25rem;
+    }
 
     /* Mobiel: blokken onder elkaar, pijlen en lifelines weglaten */
     @media (max-width: 800px) {
@@ -328,6 +425,9 @@
       .arrows {
         display: none;
       }
+      .network-layer {
+        flex-direction: column;
+      }
       video {
         margin-bottom: 0.75rem;
       }
@@ -335,14 +435,80 @@
   </style>
 </head>
 <body>
-<h1>WebRTC sequence: Web Client → STUN → Python</h1>
+<h1>WebRTC: Web Client ↔ Signaling ↔ STUN ↔ TURN ↔ Python</h1>
 <p>
   Druk op <strong>Start WebRTC flow</strong> en kijk hoe diagram, lifelines en log
-  exact de stappen volgen. <strong>Trickle ICE</strong>: ICE candidates worden verzameld (tijd 1-2)
-  en daarna meegestuurd in de offer (tijd 3). De dunne paarse pijlen tonen waar candidates
-  in de achtergrond kunnen worden uitgewisseld.
+  exact de stappen volgen. De <strong>SIGNALING SERVER</strong> (Python HTTP server) verzendt
+  SDP offers en answers. <strong>STUN</strong> ontdekt publieke IP-adressen voor NAT traversal.
+  <strong>TURN</strong> biedt media relay als fallback wanneer directe P2P connectie niet mogelijk is.
+</p>
+<p style="background: #fff3cd; padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; border-left: 4px solid #ffc107;">
+  <strong>⚠️ SSH Tunnel Note:</strong> If running through SSH tunnel, direct P2P connection may fail. 
+  Both peers need to be on the same network or use a TURN relay server. The demo includes TURN servers 
+  but they may not work reliably with aiortc.
 </p>
 
+<h2 style="margin-top:2rem;">Network Topology</h2>
+<div class="network-layer">
+  <div class="network-zone">
+    <div class="zone-label">Local Network (Browser)</div>
+    <div style="padding:0.5rem; text-align:center;">
+      <div style="font-size:0.85rem; font-weight:600;">🖥️ WEB CLIENT</div>
+      <div class="network-ip" id="browser-local-ip">(detecting...)</div>
+    </div>
+    <div class="nat-router" id="browser-nat">
+      <div><span class="firewall-icon" id="browser-nat-icon">🛡️</span>NAT Router (Browser Side)</div>
+      <div class="nat-type" id="browser-nat-type">Detecting NAT type...</div>
+      <div class="network-ip" id="browser-public-ip">Public: (detecting...)</div>
+    </div>
+  </div>
+
+  <div class="network-zone internet">
+    <div class="zone-label">Public Internet</div>
+    <div style="display:flex; justify-content:space-around; padding:0.5rem;">
+      <div style="text-align:center;">
+        <div style="font-size:0.85rem; font-weight:600;">🌐 SIGNALING</div>
+        <div class="network-ip">HTTP Server</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:0.85rem; font-weight:600;">👁️ STUN</div>
+        <div class="network-ip">Discovers IPs</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:0.85rem; font-weight:600;">🔄 TURN</div>
+        <div class="network-ip">Relay Server</div>
+      </div>
+    </div>
+    <div style="text-align:center; font-size:0.7rem; color:#1e40af; margin-top:0.5rem;">
+      ✓ No firewall restrictions - publicly accessible
+    </div>
+  </div>
+
+  <div class="network-zone">
+    <div class="zone-label">Remote Network (Python)</div>
+    <div style="padding:0.5rem; text-align:center;">
+      <div style="font-size:0.85rem; font-weight:600;">🐍 PYTHON WEBRTC</div>
+      <div class="network-ip" id="python-local-ip">192.168.86.25</div>
+    </div>
+    <div class="nat-router" id="python-nat">
+      <div><span class="firewall-icon" id="python-nat-icon">🛡️</span>NAT Router (Python Side)</div>
+      <div class="nat-type" id="python-nat-type">Detecting NAT type...</div>
+      <div class="network-ip" id="python-public-ip">Public: (detecting...)</div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#fee; padding:0.75rem; border-radius:6px; margin:1rem 0; border-left:4px solid #dc2626; font-size:0.85rem;">
+  <strong>🚫 Why Direct P2P Fails:</strong>
+  <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+    <li><strong>Different networks:</strong> 192.168.90.x ≠ 192.168.86.x (can't route directly)</li>
+    <li><strong>Symmetric NAT:</strong> Both routers block inbound connections that weren't initiated from inside</li>
+    <li><strong>SSH tunnel:</strong> Only helps signaling (HTTP), not media (UDP)</li>
+    <li><strong>No TURN relay:</strong> Need relay server to forward traffic between isolated networks</li>
+  </ul>
+</div>
+
+<h2 style="margin-top:2rem;">WebRTC Signaling Sequence</h2>
 <section class="diagram">
   <div>
     <div id="node-web" class="node">
@@ -352,11 +518,25 @@
     <div class="lane-label">SDP + ICE offer</div>
   </div>
   <div>
+    <div id="node-signaling" class="node">
+      SIGNALING SERVER
+      <span>Python HTTP (aiohttp)</span>
+    </div>
+    <div class="lane-label">Offer/Answer exchange</div>
+  </div>
+  <div>
     <div id="node-stun" class="node">
       STUN SERVER
-      <span>stun:stun.l.google.com:19302</span>
+      <span>stun.l.google.com</span>
     </div>
-    <div class="lane-label">ICE discovery</div>
+    <div class="lane-label">Public IP discovery</div>
+  </div>
+  <div>
+    <div id="node-turn" class="node">
+      TURN SERVER
+      <span>openrelay.metered.ca</span>
+    </div>
+    <div class="lane-label">Media relay (fallback)</div>
   </div>
   <div>
     <div id="node-python" class="node">
@@ -373,78 +553,107 @@
     <div class="lifeline-line"></div>
     <div class="time-axis-label">tijd</div>
     <!-- ticks op dezelfde hoogte als de pijlen -->
-    <div class="time-tick" style="top: 15px;">
-      1<span id="time1" class="time-value"></span>
-    </div>
-    <div class="time-tick" style="top: 45px;">
-      2<span id="time2" class="time-value"></span>
-    </div>
-    <div class="time-tick" style="top: 75px;">
-      3<span id="time3" class="time-value"></span>
-    </div>
-    <div class="time-tick" style="top: 105px;">
-      4<span id="time4" class="time-value"></span>
-    </div>
-    <div class="time-tick" style="top: 135px;">
-      5<span id="time5" class="time-value"></span>
-    </div>
-    <div class="time-tick" style="top: 165px;">
-      6<span id="time6" class="time-value"></span>
-    </div>
+    <div class="time-tick" style="top: 15px;">1<span id="time1" class="time-value"></span></div>
+    <div class="time-tick" style="top: 45px;">2<span id="time2" class="time-value"></span></div>
+    <div class="time-tick" style="top: 75px;">3<span id="time3" class="time-value"></span></div>
+    <div class="time-tick" style="top: 105px;">4<span id="time4" class="time-value"></span></div>
+    <div class="time-tick" style="top: 135px;">5<span id="time5" class="time-value"></span></div>
+  </div>
+  <div class="lifeline lifeline-signaling">
+    <div class="lifeline-line"></div>
   </div>
   <div class="lifeline lifeline-stun">
+    <div class="lifeline-line"></div>
+  </div>
+  <div class="lifeline lifeline-turn">
     <div class="lifeline-line"></div>
   </div>
   <div class="lifeline lifeline-python">
     <div class="lifeline-line"></div>
   </div>
 
-  <!-- WEB → STUN -->
+  <!-- 1. WEB → STUN (ICE gathering) -->
   <div class="arrow" id="arrow-web-stun">
     <div class="arrow-line"></div>
-    <div class="arrow-label">WEB CLIENT → STUN (ICE gathering)</div>
+    <div class="arrow-label">WEB → STUN (discover IP)</div>
   </div>
 
-  <!-- STUN → WEB -->
+  <!-- 2. STUN → WEB (candidates) -->
   <div class="arrow reverse" id="arrow-stun-web">
     <div class="arrow-line"></div>
-    <div class="arrow-label">STUN → WEB CLIENT (candidates)</div>
+    <div class="arrow-label">STUN → WEB (public IP)</div>
   </div>
 
-  <!-- WEB → PYTHON (signaling / offer JSON) -->
-  <div class="arrow" id="arrow-web-python">
+  <!-- 3. WEB → TURN (request relay) -->
+  <div class="arrow" id="arrow-web-turn">
     <div class="arrow-line"></div>
-    <div class="arrow-label">WEB CLIENT → PYTHON (offer + ICE candidates)</div>
+    <div class="arrow-label">WEB → TURN (request relay)</div>
   </div>
 
-  <!-- PYTHON → WEB (answer JSON) -->
-  <div class="arrow reverse" id="arrow-python-web">
+  <!-- 4. TURN → WEB (relay allocated) -->
+  <div class="arrow reverse" id="arrow-turn-web">
     <div class="arrow-line"></div>
-    <div class="arrow-label">PYTHON → WEB CLIENT (answer + ICE candidates)</div>
+    <div class="arrow-label">TURN → WEB (relay candidate)</div>
   </div>
 
-  <!-- PYTHON ↔ STUN -->
-  <div class="arrow" id="arrow-python-stun">
+  <!-- 5. WEB → SIGNALING (offer JSON) -->
+  <div class="arrow" id="arrow-web-signaling">
     <div class="arrow-line"></div>
-    <div class="arrow-label">PYTHON ↔ STUN (ICE gathering - background)</div>
+    <div class="arrow-label">WEB → SIGNALING (offer)</div>
   </div>
 
-  <!-- WEB ↔ PYTHON (ICE connection established) -->
-  <div class="arrow bidirectional" id="arrow-ice-connect">
+  <!-- 6. SIGNALING → PYTHON (forward offer) -->
+  <div class="arrow" id="arrow-signaling-python">
     <div class="arrow-line"></div>
-    <div class="arrow-label">WEB CLIENT ↔ PYTHON (ICE connected)</div>
+    <div class="arrow-label">SIGNALING → PYTHON (offer)</div>
   </div>
 
-  <!-- Trickle ICE: WEB → PYTHON -->
-  <div class="arrow trickle" id="arrow-trickle-web-python">
+  <!-- 7. PYTHON → STUN (ICE gathering) -->
+  <div class="arrow reverse" id="arrow-python-stun">
     <div class="arrow-line"></div>
-    <div class="arrow-label">trickle: WEB sends ICE candidates</div>
+    <div class="arrow-label">PYTHON → STUN (discover IP)</div>
   </div>
 
-  <!-- Trickle ICE: PYTHON → WEB -->
-  <div class="arrow trickle reverse" id="arrow-trickle-python-web">
+  <!-- 8. STUN → PYTHON (candidates) -->
+  <div class="arrow" id="arrow-stun-python">
     <div class="arrow-line"></div>
-    <div class="arrow-label">trickle: PYTHON sends ICE candidates</div>
+    <div class="arrow-label">STUN → PYTHON (public IP)</div>
+  </div>
+
+  <!-- 9. PYTHON → TURN (request relay) -->
+  <div class="arrow reverse" id="arrow-python-turn">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">PYTHON → TURN (request relay)</div>
+  </div>
+
+  <!-- 10. TURN → PYTHON (relay allocated) -->
+  <div class="arrow" id="arrow-turn-python">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">TURN → PYTHON (relay candidate)</div>
+  </div>
+
+  <!-- 11. PYTHON → SIGNALING (answer JSON) -->
+  <div class="arrow reverse" id="arrow-python-signaling">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">PYTHON → SIGNALING (answer)</div>
+  </div>
+
+  <!-- 12. SIGNALING → WEB (forward answer) -->
+  <div class="arrow reverse" id="arrow-signaling-web">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">SIGNALING → WEB (answer)</div>
+  </div>
+
+  <!-- 13. WEB ↔ PYTHON (direct P2P - preferred) -->
+  <div class="arrow bidirectional" id="arrow-ice-connect" style="border-color:#10b981;">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">WEB ↔ PYTHON (direct P2P) ✓</div>
+  </div>
+
+  <!-- 14. WEB ↔ TURN ↔ PYTHON (relay fallback) -->
+  <div class="arrow bidirectional" id="arrow-relay-flow" style="opacity:0.4;">
+    <div class="arrow-line" style="border-top:2px dashed #f59e0b;"></div>
+    <div class="arrow-label" style="color:#f59e0b;">WEB ↔ TURN ↔ PYTHON (relay fallback)</div>
   </div>
 </section>
 
@@ -463,6 +672,21 @@
   </div>
 </section>
 
+<h2>ICE Candidate Analysis</h2>
+<div id="ice-analysis" style="display:none; background:#f8f9fa; padding:1rem; border-radius:8px; margin:1rem 0; border-left:4px solid #6c757d;">
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+    <div>
+      <h3 style="margin-top:0; color:#38bdf8; font-size:1rem;">WEB CLIENT Candidates</h3>
+      <div id="local-candidates" style="font-family:monospace; font-size:0.75rem;"></div>
+    </div>
+    <div>
+      <h3 style="margin-top:0; color:#4ade80; font-size:1rem;">PYTHON Candidates</h3>
+      <div id="remote-candidates" style="font-family:monospace; font-size:0.75rem;"></div>
+    </div>
+  </div>
+  <div id="match-analysis" style="margin-top:1rem; padding:1rem; background:white; border-radius:6px;"></div>
+</div>
+
 <h2>Timeline log</h2>
 <div id="log"></div>
 
@@ -475,12 +699,18 @@
   const arrows = {
     'web-stun': document.getElementById('arrow-web-stun'),
     'stun-web': document.getElementById('arrow-stun-web'),
-    'web-python': document.getElementById('arrow-web-python'),
-    'python-web': document.getElementById('arrow-python-web'),
+    'web-turn': document.getElementById('arrow-web-turn'),
+    'turn-web': document.getElementById('arrow-turn-web'),
+    'web-signaling': document.getElementById('arrow-web-signaling'),
+    'signaling-python': document.getElementById('arrow-signaling-python'),
     'python-stun': document.getElementById('arrow-python-stun'),
+    'stun-python': document.getElementById('arrow-stun-python'),
+    'python-turn': document.getElementById('arrow-python-turn'),
+    'turn-python': document.getElementById('arrow-turn-python'),
+    'python-signaling': document.getElementById('arrow-python-signaling'),
+    'signaling-web': document.getElementById('arrow-signaling-web'),
     'ice-connect': document.getElementById('arrow-ice-connect'),
-    'trickle-web-python': document.getElementById('arrow-trickle-web-python'),
-    'trickle-python-web': document.getElementById('arrow-trickle-python-web'),
+    'relay-flow': document.getElementById('arrow-relay-flow'),
   };
 
   // Time measurement
@@ -491,7 +721,6 @@
     time3: document.getElementById('time3'),
     time4: document.getElementById('time4'),
     time5: document.getElementById('time5'),
-    time6: document.getElementById('time6'),
   };
 
   function setTimeValue(timeId) {
@@ -503,6 +732,7 @@
     if (el) {
       el.textContent = `(${elapsed.toFixed(0)}ms)`;
     }
+    return elapsed;
   }
 
   function activateArrow(name) {
@@ -521,15 +751,202 @@
     span.className = 'log-tag ' + (tagClass || '');
     span.textContent = '[' + tag + '] ';
     line.appendChild(span);
+    
+    // Add timestamp
+    if (startTime) {
+      const elapsed = performance.now() - startTime;
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'time-value';
+      timeSpan.textContent = `[${elapsed.toFixed(0)}ms] `;
+      line.appendChild(timeSpan);
+    }
+    
     line.appendChild(document.createTextNode(message));
     logEl.appendChild(line);
     logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ICE Candidate Analysis
+  const localCandidates = [];
+  const remoteCandidates = [];
+  let pc = null; // Global reference to peer connection
+
+  function parseCandidateInfo(candidateStr) {
+    const parts = candidateStr.split(' ');
+    const info = {
+      ip: parts[4] || 'unknown',
+      port: parts[5] || 'unknown',
+      type: parts[7] || 'unknown',
+      protocol: parts[2] || 'unknown',
+      full: candidateStr
+    };
+    return info;
+  }
+
+  async function analyzeNetworkMatch() {
+    const analysisEl = document.getElementById('ice-analysis');
+    const matchAnalysisEl = document.getElementById('match-analysis');
+    analysisEl.style.display = 'block';
+
+    // Display local candidates
+    const localEl = document.getElementById('local-candidates');
+    localEl.innerHTML = '<div style="margin-bottom:0.5rem; font-weight:600;">Networks detected:</div>';
+    const localNetworks = new Set();
+    const localIPs = new Set();
+    localCandidates.forEach((cand, i) => {
+      const info = parseCandidateInfo(cand);
+      localIPs.add(info.ip);
+      // Only add network prefix for IPv4
+      if (info.ip.includes('.') && !info.ip.includes(':')) {
+        const network = info.ip.split('.').slice(0, 3).join('.');
+        localNetworks.add(network);
+      }
+      const color = info.type === 'host' ? '#3b82f6' : info.type === 'srflx' ? '#10b981' : '#f59e0b';
+      localEl.innerHTML += `<div style="color:${color}; margin:0.25rem 0;">${i+1}. ${info.type}: ${info.ip}:${info.port} (${info.protocol})</div>`;
+    });
+
+    // Display remote candidates
+    const remoteEl = document.getElementById('remote-candidates');
+    remoteEl.innerHTML = '<div style="margin-bottom:0.5rem; font-weight:600;">Networks detected:</div>';
+    const remoteNetworks = new Set();
+    const remoteIPs = new Set();
+    remoteCandidates.forEach((cand, i) => {
+      const info = parseCandidateInfo(cand);
+      remoteIPs.add(info.ip);
+      // Only add network prefix for IPv4
+      if (info.ip.includes('.') && !info.ip.includes(':')) {
+        const network = info.ip.split('.').slice(0, 3).join('.');
+        remoteNetworks.add(network);
+      }
+      const color = info.type === 'host' ? '#3b82f6' : info.type === 'srflx' ? '#10b981' : '#f59e0b';
+      remoteEl.innerHTML += `<div style="color:${color}; margin:0.25rem 0;">${i+1}. ${info.type}: ${info.ip}:${info.port} (${info.protocol})</div>`;
+    });
+
+    // Check actual connection state and selected candidate pair
+    const isConnected = pc && (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed');
+    let selectedPairInfo = null;
+    
+    if (isConnected && pc) {
+      try {
+        const stats = await pc.getStats();
+        let selectedPair = null;
+        let localCand = null;
+        let remoteCand = null;
+        
+        // Find the selected (nominated) candidate pair
+        stats.forEach(report => {
+          if (report.type === 'candidate-pair' && (report.state === 'succeeded' || report.nominated)) {
+            selectedPair = report;
+          }
+        });
+        
+        // Get the actual candidates used
+        if (selectedPair) {
+          stats.forEach(report => {
+            if (report.type === 'local-candidate' && report.id === selectedPair.localCandidateId) {
+              localCand = report;
+            }
+            if (report.type === 'remote-candidate' && report.id === selectedPair.remoteCandidateId) {
+              remoteCand = report;
+            }
+          });
+          
+          selectedPairInfo = {
+            local: localCand,
+            remote: remoteCand,
+            pair: selectedPair
+          };
+        }
+      } catch (e) {
+        console.error('Error getting stats:', e);
+      }
+    }
+    
+    // Analyze compatibility
+    const localNets = Array.from(localNetworks);
+    const remoteNets = Array.from(remoteNetworks);
+    const hasOverlap = localNets.some(ln => remoteNets.includes(ln));
+    const hasRelay = localCandidates.some(c => c.includes('relay')) || remoteCandidates.some(c => c.includes('relay'));
+
+    let diagnosis = '';
+    
+    // If already connected, show the actual selected candidate pair
+    if (isConnected && selectedPairInfo) {
+      const local = selectedPairInfo.local;
+      const remote = selectedPairInfo.remote;
+      
+      const localType = local.candidateType || 'unknown';
+      const remoteType = remote.candidateType || 'unknown';
+      const localIP = local.address || local.ip || 'unknown';
+      const remoteIP = remote.address || remote.ip || 'unknown';
+      
+      const typeColor = localType === 'host' ? '#3b82f6' : localType === 'srflx' ? '#10b981' : '#f59e0b';
+      
+      diagnosis = `<div style="color:#10b981; font-weight:600;">✓ Connection Established!</div>
+        <div style="margin-top:0.5rem; padding:0.75rem; background:#d1fae5; border-radius:4px;">
+          <strong>Selected Candidate Pair:</strong><br>
+          <div style="margin-top:0.5rem;">
+            • Local: <span style="color:${typeColor}; font-weight:600;">${localType}</span> ${localIP}:${local.port || '?'}<br>
+            • Remote: <span style="color:${typeColor}; font-weight:600;">${remoteType}</span> ${remoteIP}:${remote.port || '?'}
+          </div>
+          <div style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid #86efac;">
+            ${localType === 'host' && remoteType === 'host' ? 
+              '<strong>✓ Direct connection on same network</strong> - No NAT traversal needed!' :
+              localType === 'relay' || remoteType === 'relay' ?
+              '<strong>↔ Using TURN relay</strong> - NATs blocked direct connection' :
+              '<strong>✓ P2P through NAT</strong> - STUN-assisted connection succeeded'}
+          </div>
+        </div>`;
+    } else if (isConnected) {
+      // Connected but no detailed stats
+      const commonNets = localNets.filter(ln => remoteNets.includes(ln));
+      if (commonNets.length > 0) {
+        diagnosis = `<div style="color:#10b981; font-weight:600;">✓ Connection Established - Network Overlap</div>
+          <div style="margin-top:0.5rem;">Common networks: ${commonNets.join(', ')}.x</div>
+          <div style="margin-top:0.5rem; padding:0.75rem; background:#d1fae5; border-radius:4px;">
+            <strong>✓ Direct P2P connection succeeded!</strong> Both peers can reach each other on shared network.
+          </div>`;
+      } else {
+        diagnosis = `<div style="color:#10b981; font-weight:600;">✓ Connection Established</div>
+          <div style="margin-top:0.5rem;">P2P connection succeeded through NAT traversal.</div>`;
+      }
+    } else if (hasOverlap) {
+      diagnosis = `<div style="color:#10b981; font-weight:600;">✓ Network Overlap Found</div>
+        <div style="margin-top:0.5rem;">Common networks: ${localNets.filter(ln => remoteNets.includes(ln)).join(', ')}.x</div>
+        <div style="margin-top:0.5rem; padding:0.75rem; background:#d1fae5; border-radius:4px;">
+          <strong>✓ Direct P2P possible!</strong> Both peers can reach each other on shared network.
+          NAT is likely <strong>Full Cone or Port-Restricted</strong> (allows P2P connections).
+        </div>`;
+    } else if (hasRelay) {
+      diagnosis = `<div style="color:#3b82f6; font-weight:600;">↔ TURN Relay Available</div>
+        <div style="margin-top:0.5rem;">No common networks, but relay candidates found. Connection will use TURN relay.</div>`;
+    } else {
+      diagnosis = `<div style="color:#dc2626; font-weight:600;">✗ No Compatible Path Found</div>
+        <div style="margin-top:0.5rem; padding:0.75rem; background:#fee; border-radius:4px;">
+          <strong>Problem:</strong> Different networks detected:<br>
+          • WEB CLIENT: ${localNets.join(', ')}<br>
+          • PYTHON: ${remoteNets.join(', ')}<br><br>
+          <strong>Why this fails:</strong><br>
+          • Peers are on different networks (likely SSH tunnel scenario)<br>
+          • No relay (TURN) candidates available<br>
+          • Direct peer-to-peer connection impossible<br><br>
+          <strong>Solutions:</strong><br>
+          1. Run both on same network/machine<br>
+          2. Configure working TURN server for relay<br>
+          3. Set up proper network routing between ${localNets[0]}.x and ${remoteNets[0]}.x
+        </div>`;
+    }
+
+    matchAnalysisEl.innerHTML = diagnosis;
   }
 
   startBtn.onclick = async () => {
     startBtn.disabled = true;
     logEl.textContent = '';
     Object.values(arrows).forEach(a => a.classList.remove('active'));
+    document.getElementById('ice-analysis').style.display = 'none';
+    localCandidates.length = 0;
+    remoteCandidates.length = 0;
     
     // Reset time measurements
     startTime = null;
@@ -550,10 +967,28 @@
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     localVideo.srcObject = stream;
 
-    // 2. PeerConnection met STUN
-    addLog('WEB CLIENT', 'Creating RTCPeerConnection with STUN server…', 'tag-web');
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    // 2. PeerConnection met STUN/TURN
+    addLog('WEB CLIENT', 'Creating RTCPeerConnection with STUN/TURN servers…', 'tag-web');
+    pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        // Free TURN servers for testing (relay for SSH tunnel scenarios)
+        { 
+          urls: [
+            'turn:openrelay.metered.ca:80',
+            'turn:openrelay.metered.ca:443',
+            'turns:openrelay.metered.ca:443'
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:numb.viagenie.ca',
+          username: 'webrtc@live.com',
+          credential: 'muazkh'
+        }
+      ],
+      iceCandidatePoolSize: 10
     });
 
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
@@ -569,7 +1004,7 @@
       addLog('WEB CLIENT', 'ICE gathering state: ' + pc.iceGatheringState, 'tag-web');
       if (pc.iceGatheringState === 'gathering') {
         setTimeValue('time1');
-        addLog('WEB ↔ STUN', 'Browser starts contacting STUN for ICE candidates. (tijd 1)', 'tag-stun');
+        addLog('WEB → STUN', 'Browser starts contacting STUN for ICE candidates. (tijd 1)', 'tag-stun');
         activateArrow('web-stun');
       }
       if (pc.iceGatheringState === 'complete') {
@@ -580,26 +1015,142 @@
     });
 
     let webCandidateCount = 0;
+    let hasTurnCandidate = false;
     pc.addEventListener('icecandidate', event => {
       if (event.candidate) {
         webCandidateCount++;
+        localCandidates.push(event.candidate.candidate);
         addLog('WEB CLIENT', 'New ICE candidate #' + webCandidateCount + ': ' + event.candidate.candidate.substring(0, 50) + '...', 'tag-web');
-        // Activate trickle arrow on first candidate after offer sent
-        if (webCandidateCount === 1) {
-          activateArrow('trickle-web-python');
+        
+        // Update network topology with actual IPs
+        const info = parseCandidateInfo(event.candidate.candidate);
+        if (info.type === 'host') {
+          document.getElementById('browser-local-ip').textContent = info.ip;
+        } else if (info.type === 'srflx') {
+          document.getElementById('browser-public-ip').textContent = 'Public: ' + info.ip;
+        }
+        
+        // Check if this is a relay (TURN) candidate
+        if (event.candidate.candidate.includes('relay') && !hasTurnCandidate) {
+          hasTurnCandidate = true;
+          setTimeValue('time3');
+          addLog('WEB → TURN', 'Requesting relay allocation from TURN server. (tijd 3)', 'tag-stun');
+          activateArrow('web-turn');
+          setTimeout(() => {
+            setTimeValue('time4');
+            addLog('TURN → WEB', 'TURN relay candidate allocated. (tijd 4)', 'tag-stun');
+            activateArrow('turn-web');
+          }, 100);
         }
       } else {
         // null candidate means gathering complete
         addLog('WEB CLIENT', 'ICE gathering complete (sent ' + webCandidateCount + ' candidates)', 'tag-web');
+        if (!hasTurnCandidate) {
+          addLog('WEB CLIENT', '⚠️ No TURN relay candidates - direct connection required', 'tag-web');
+        }
       }
     });
 
-    pc.addEventListener('iceconnectionstatechange', () => {
+    pc.addEventListener('iceconnectionstatechange', async () => {
       addLog('ICE CONNECTION', 'ICE state: ' + pc.iceConnectionState, 'tag-join');
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-        setTimeValue('time6');
-        addLog('WEB ↔ PYTHON', 'ICE connection established! Media can now flow. (tijd 6)', 'tag-join');
-        activateArrow('ice-connect');
+        // Check which candidate pair was selected
+        const stats = await pc.getStats();
+        let selectedPair = null;
+        stats.forEach(report => {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            selectedPair = report;
+          }
+        });
+        
+        if (selectedPair) {
+          // Check if using relay
+          let localCand = null, remoteCand = null;
+          stats.forEach(report => {
+            if (report.type === 'local-candidate' && report.id === selectedPair.localCandidateId) {
+              localCand = report;
+            }
+            if (report.type === 'remote-candidate' && report.id === selectedPair.remoteCandidateId) {
+              remoteCand = report;
+            }
+          });
+          
+          const usingRelay = (localCand && localCand.candidateType === 'relay') || 
+                            (remoteCand && remoteCand.candidateType === 'relay');
+          
+          if (usingRelay) {
+            addLog('WEB ↔ TURN ↔ PYTHON', '✓ Connection via TURN relay! (fallback path)', 'tag-join');
+            activateArrow('relay-flow');
+            arrows['relay-flow'].style.opacity = '1';
+            arrows['ice-connect'].style.opacity = '0.3';
+            
+            // Update analysis for relay connection
+            await analyzeNetworkMatch();
+          } else {
+            addLog('WEB ↔ PYTHON', '✓ Direct P2P connection! (optimal path)', 'tag-join');
+            activateArrow('ice-connect');
+            arrows['ice-connect'].style.opacity = '1';
+            arrows['relay-flow'].style.opacity = '0.3';
+            
+            // Update NAT status based on connection success
+            const browserNatType = document.getElementById('browser-nat-type');
+            const pythonNatType = document.getElementById('python-nat-type');
+            const browserNatIcon = document.getElementById('browser-nat-icon');
+            const pythonNatIcon = document.getElementById('python-nat-icon');
+            
+            // Check if we're on same network (host candidates worked)
+            const usedHostCandidates = localCand && localCand.candidateType === 'host';
+            
+            if (usedHostCandidates) {
+              // Direct connection on same network - no NAT traversal needed
+              if (browserNatType) {
+                browserNatType.textContent = '✓ Same network - Direct connection (no NAT traversal)';
+                browserNatType.style.color = '#10b981';
+              }
+              if (pythonNatType) {
+                pythonNatType.textContent = '✓ Same network - Direct connection (no NAT traversal)';
+                pythonNatType.style.color = '#10b981';
+              }
+              if (browserNatIcon) browserNatIcon.textContent = '✅';
+              if (pythonNatIcon) pythonNatIcon.textContent = '✅';
+            } else {
+              // Used STUN (srflx) - NAT traversal succeeded
+              if (browserNatType) {
+                browserNatType.textContent = '✓ NAT allows P2P (Full Cone / Port-Restricted)';
+                browserNatType.style.color = '#10b981';
+              }
+              if (pythonNatType) {
+                pythonNatType.textContent = '✓ NAT allows P2P (Full Cone / Port-Restricted)';
+                pythonNatType.style.color = '#10b981';
+              }
+              if (browserNatIcon) browserNatIcon.textContent = '✅';
+              if (pythonNatIcon) pythonNatIcon.textContent = '✅';
+            }
+            
+            // Re-run analysis to update diagnosis
+            await analyzeNetworkMatch();
+          }
+        } else {
+          addLog('WEB ↔ PYTHON', 'ICE connection established!', 'tag-join');
+          activateArrow('ice-connect');
+          
+          // Update analysis even without detailed stats
+          await analyzeNetworkMatch();
+        }
+      } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        // Connection failed - update browser NAT only (server NAT already detected)
+        const browserNatType = document.getElementById('browser-nat-type');
+        const browserNatIcon = document.getElementById('browser-nat-icon');
+        
+        if (browserNatType) {
+          browserNatType.textContent = 'Connection failed - Likely Symmetric NAT or firewall blocking';
+          browserNatType.style.color = '#ef4444';
+        }
+        if (browserNatIcon) browserNatIcon.textContent = '❌';
+        
+        // Don't update Python NAT - it's already set from server detection
+        
+        await analyzeNetworkMatch();
       }
     });
 
@@ -612,16 +1163,27 @@
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // Wait for ICE gathering to complete (for demo simplicity)
-    // Note: In production, candidates could be sent separately (true trickle ICE)
-    addLog('WEB CLIENT', 'Waiting for ICE candidates to be gathered...', 'tag-web');
+    // Wait for ICE gathering to complete with timeout
+    // TURN servers need more time to respond
+    addLog('WEB CLIENT', 'Waiting for ICE candidates to be gathered (including TURN)...', 'tag-web');
+    const gatheringTimeout = 10000; // 10 second timeout for TURN
+    const gatheringStart = performance.now();
     while (pc.iceGatheringState !== 'complete') {
       await new Promise(r => setTimeout(r, 50));
+      if (performance.now() - gatheringStart > gatheringTimeout) {
+        addLog('WEB CLIENT', `ICE gathering timeout after ${gatheringTimeout}ms, proceeding anyway...`, 'tag-web');
+        break;
+      }
     }
 
-    setTimeValue('time3');
-    addLog('SIGNALING', 'Sending offer with ICE candidates to PYTHON backend /offer… (tijd 3)', 'tag-join');
-    activateArrow('web-python');
+    setTimeValue('time5');
+    addLog('WEB → SIGNALING', 'Sending offer with ICE candidates to signaling server /offer… (tijd 5)', 'tag-signaling');
+    activateArrow('web-signaling');
+
+    // Simulate signaling server forwarding to Python
+    await new Promise(r => setTimeout(r, 100));
+    addLog('SIGNALING → PYTHON', 'Signaling server forwards offer to PYTHON WEBRTC.', 'tag-signaling');
+    activateArrow('signaling-python');
 
     const response = await fetch('/offer', {
       method: 'POST',
@@ -632,26 +1194,81 @@
       })
     });
 
-    const answer = await response.json();
-    setTimeValue('time4');
-    addLog('SIGNALING', 'Received answer from PYTHON; applying as remote description. (tijd 4)', 'tag-join');
-    activateArrow('python-web');
-
-    // Show Python ICE gathering (happens during/after answer)
-    setTimeValue('time5');
-    addLog('PYTHON WEBRTC', 'Python ICE gathering in background (check server console). (tijd 5)', 'tag-python');
+    // Show Python ICE gathering (happens during offer processing)
+    addLog('PYTHON → STUN', 'Python ICE gathering in background (check server console).', 'tag-python');
     activateArrow('python-stun');
+
+    await new Promise(r => setTimeout(r, 100));
+    addLog('STUN → PYTHON', 'STUN sends candidates back to Python.', 'tag-stun');
+    activateArrow('stun-python');
+
+    // Python TURN request (if configured)
+    await new Promise(r => setTimeout(r, 100));
+    addLog('PYTHON → TURN', 'Python requests TURN relay allocation.', 'tag-python');
+    activateArrow('python-turn');
+
+    await new Promise(r => setTimeout(r, 100));
+    addLog('TURN → PYTHON', 'TURN relay allocation (may timeout if unavailable).', 'tag-stun');
+    activateArrow('turn-python');
+
+    const answer = await response.json();
+    
+    // Display server NAT info if available
+    if (answer.nat_info) {
+      const pythonNatType = document.getElementById('python-nat-type');
+      const pythonLocalIp = document.getElementById('python-local-ip');
+      const pythonPublicIp = document.getElementById('python-public-ip');
+      const pythonNatIcon = document.getElementById('python-nat-icon');
+      
+      if (pythonNatType) {
+        pythonNatType.textContent = answer.nat_info.nat_type;
+        pythonNatType.style.color = answer.nat_info.nat_category === 'none' ? '#10b981' : 
+                                     answer.nat_info.nat_category === 'error' ? '#ef4444' : '#f59e0b';
+      }
+      if (pythonLocalIp && answer.nat_info.local_ip) {
+        pythonLocalIp.textContent = 'Local: ' + answer.nat_info.local_ip;
+      }
+      if (pythonPublicIp && answer.nat_info.public_ip) {
+        pythonPublicIp.textContent = 'Public: ' + answer.nat_info.public_ip;
+      }
+      if (pythonNatIcon) {
+        pythonNatIcon.textContent = answer.nat_info.nat_category === 'none' ? '✅' : 
+                                     answer.nat_info.nat_category === 'error' ? '❌' : '🛡️';
+      }
+      
+      addLog('WEB CLIENT', `Server NAT: ${answer.nat_info.nat_type}`, 'tag-join');
+    }
+    
+    addLog('PYTHON → SIGNALING', 'Python sends answer back to signaling server.', 'tag-signaling');
+    activateArrow('python-signaling');
+
+    await new Promise(r => setTimeout(r, 100));
+    addLog('SIGNALING → WEB', 'Signaling server forwards answer to WEB CLIENT.', 'tag-signaling');
+    activateArrow('signaling-web');
 
     await pc.setRemoteDescription(answer);
 
-    addLog('WEB CLIENT', 'Answer applied. ICE negotiation ongoing in background (trickle ICE)...', 'tag-web');
+    // Extract remote candidates from SDP
+    const remoteSdp = answer.sdp;
+    const candidateLines = remoteSdp.split('\n').filter(line => line.startsWith('a=candidate:'));
+    candidateLines.forEach(line => {
+      const candidate = line.substring(2); // Remove 'a=' prefix
+      remoteCandidates.push(candidate);
+      
+      // Update network topology with Python's IPs
+      const info = parseCandidateInfo(candidate);
+      if (info.type === 'host') {
+        document.getElementById('python-local-ip').textContent = info.ip;
+      } else if (info.type === 'srflx') {
+        document.getElementById('python-public-ip').textContent = 'Public: ' + info.ip;
+      }
+    });
+
+    addLog('WEB CLIENT', 'Answer applied. ICE negotiation ongoing...', 'tag-web');
+    addLog('ANALYSIS', `Analyzing ${localCandidates.length} local and ${remoteCandidates.length} remote candidates...`, 'tag-join');
     
-    // Simulate Python sending trickle ICE candidates back
-    // (In reality these would come via the answer SDP or a separate signaling channel)
-    setTimeout(() => {
-      activateArrow('trickle-python-web');
-      addLog('PYTHON → WEB', 'Python sends ICE candidates via trickle ICE', 'tag-python');
-    }, 200);
+    // Don't analyze immediately - wait for connection to succeed or fail
+    // Analysis will be triggered by the iceconnectionstatechange event
   }
 </script>
 </body>

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import socket
 from aiohttp import web
 
 from aiortc import (
@@ -13,12 +14,34 @@ from aiortc import (
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer
 from av import VideoFrame
 import numpy as np
+import aioice
 
 pcs = set()
+server_nat_info = None  # Store NAT detection results
 
-# STUN config – dit is de "STUN SERVER"
+# STUN/TURN config – dit is de "STUN SERVER"
+# For SSH tunnel scenarios, we need TURN to relay traffic
 stun_config = RTCConfiguration(
-    iceServers=[RTCIceServer(urls="stun:stun.l.google.com:19302")]
+    iceServers=[
+        RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
+        # Free TURN servers for testing
+        RTCIceServer(
+            urls=[
+                "turn:openrelay.metered.ca:80",
+                "turn:openrelay.metered.ca:443",
+                "turns:openrelay.metered.ca:443"
+            ],
+            username="openrelayproject",
+            credential="openrelayproject"
+        ),
+        RTCIceServer(
+            urls=[
+                "turn:numb.viagenie.ca",
+            ],
+            username="webrtc@live.com",
+            credential="muazkh"
+        ),
+    ]
 )
 
 
@@ -67,6 +90,81 @@ class ColorBarsVideoTrack(VideoStreamTrack):
 
 
 
+async def detect_nat_type():
+    """Detect NAT type by testing with STUN servers."""
+    global server_nat_info
+    
+    try:
+        print("\n[NAT DETECTION] Starting NAT type detection on server...")
+        
+        # Get local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        
+        # Create ICE connection to gather candidates
+        connection = aioice.Connection(ice_controlling=True, stun_server=("stun.l.google.com", 19302))
+        
+        # Gather candidates
+        await connection.gather_candidates()
+        
+        candidates = connection.local_candidates
+        print(f"[NAT DETECTION] Gathered {len(candidates)} candidates")
+        
+        # Analyze candidates
+        has_host = False
+        has_srflx = False
+        public_ip = None
+        
+        for candidate in candidates:
+            print(f"[NAT DETECTION] Candidate: {candidate.type} {candidate.host}:{candidate.port}")
+            if candidate.type == "host":
+                has_host = True
+            elif candidate.type == "srflx":
+                has_srflx = True
+                public_ip = candidate.host
+        
+        # Determine NAT type
+        if has_host and not has_srflx:
+            nat_type = "No NAT detected - Same network as browser"
+            nat_category = "none"
+        elif has_host and has_srflx:
+            # Have both local and public IP - behind NAT
+            # Can't fully determine without more complex tests
+            nat_type = "Behind NAT (type will be determined by connection test)"
+            nat_category = "unknown"
+        else:
+            nat_type = "Unknown network configuration"
+            nat_category = "unknown"
+        
+        server_nat_info = {
+            "local_ip": local_ip,
+            "public_ip": public_ip or "Not detected",
+            "nat_type": nat_type,
+            "nat_category": nat_category,
+            "has_srflx": has_srflx,
+        }
+        
+        print(f"[NAT DETECTION] Local IP: {local_ip}")
+        print(f"[NAT DETECTION] Public IP: {public_ip or 'Not detected'}")
+        print(f"[NAT DETECTION] NAT Type: {nat_type}")
+        
+        await connection.close()
+        
+    except Exception as e:
+        print(f"[NAT DETECTION] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        server_nat_info = {
+            "local_ip": "Unknown",
+            "public_ip": "Detection failed",
+            "error": str(e),
+            "nat_type": "NAT detection failed - check server logs",
+            "nat_category": "error"
+        }
+
+
 async def index(request: web.Request):
     """Serve de demo pagina."""
     return web.FileResponse(os.path.join("static", "index.html"))
@@ -86,12 +184,27 @@ async def offer(request: web.Request):
     async def on_ice_gathering_state_change():
         print("[PYTHON] ICE gathering state:", pc.iceGatheringState)
 
+    @pc.on("icecandidate")
+    def on_ice_candidate(candidate):
+        if candidate:
+            print(f"[PYTHON] ICE candidate: {candidate.candidate}")
+        else:
+            print("[PYTHON] ICE candidate gathering complete (null candidate)")
+
     @pc.on("iceconnectionstatechange")
     async def on_ice_connection_state_change():
-        print("[PYTHON] ICE connection state:", pc.iceConnectionState)
-        if pc.iceConnectionState in ("failed", "closed", "disconnected"):
-            await pc.close()
-            pcs.discard(pc)
+        print(f"[PYTHON] ICE connection state: {pc.iceConnectionState}")
+        if pc.iceConnectionState == "connected":
+            print("[PYTHON] ✓ ICE CONNECTION ESTABLISHED!")
+        elif pc.iceConnectionState == "completed":
+            print("[PYTHON] ✓ ICE CONNECTION COMPLETED!")
+        elif pc.iceConnectionState in ("failed", "closed", "disconnected"):
+            print(f"[PYTHON] ✗ Connection issue - state: {pc.iceConnectionState}")
+            # Don't close immediately on disconnected, give it time to reconnect
+            if pc.iceConnectionState in ("failed", "closed"):
+                print("[PYTHON] Closing peer connection")
+                await pc.close()
+                pcs.discard(pc)
 
     @pc.on("track")
     def on_track(track):
@@ -112,11 +225,22 @@ async def offer(request: web.Request):
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    print("[PYTHON] Sending answer back to WEB CLIENT (ICE will continue gathering)")
+    print("[PYTHON] Waiting for ICE gathering to complete...")
+    # In aiortc, ICE gathering happens in the background
+    # We need to wait longer for TURN server candidates
+    await asyncio.sleep(5.0)  # Give it 5 seconds to gather TURN candidates
+    
+    print("[PYTHON] ICE gathering complete, sending answer back to WEB CLIENT")
+    if pc.localDescription:
+        candidate_count = pc.localDescription.sdp.count('a=candidate')
+        print(f"[PYTHON] Local description has {candidate_count} candidates")
+        if candidate_count == 0:
+            print("[PYTHON] WARNING: No ICE candidates in SDP! Connection will likely fail.")
 
     response = {
         "sdp": pc.localDescription.sdp,
         "type": pc.localDescription.type,
+        "nat_info": server_nat_info,  # Include NAT detection results
     }
     return web.Response(
         content_type="application/json",
@@ -131,12 +255,24 @@ async def on_shutdown(app: web.Application):
 
 
 if __name__ == "__main__":
+    # Enable aiortc logging for debugging
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    
+    print("Starting server on http://0.0.0.0:8085")
+    print("Open http://<server-ip>:8085 in your browser to test WebRTC")
+    
+    async def startup():
+        """Run NAT detection on startup."""
+        await detect_nat_type()
+    
     app = web.Application()
+    app.on_startup.append(lambda _: startup())
     app.on_shutdown.append(on_shutdown)
 
     # Routes
     app.router.add_get("/", index)
     app.router.add_post("/offer", offer)
     app.router.add_static("/static/", path="static", name="static")
-
-    web.run_app(app, host="localhost", port=8085)
+    
+    web.run_app(app, host="0.0.0.0", port=8085)
