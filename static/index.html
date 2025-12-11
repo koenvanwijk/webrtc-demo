@@ -65,7 +65,7 @@
     .arrows {
       position: relative;
       margin-top: 1rem;
-      height: 190px; /* ruimte voor alle pijlen + background ICE */
+      height: 250px; /* ruimte voor alle pijlen + trickle ICE */
       font-size: 0.8rem;
     }
 
@@ -212,6 +212,35 @@
       font-size: 1.2rem;
       right: 50%;
       transform: translateX(50%);
+    }
+
+    /* Trickle ICE arrows - dotted and smaller */
+    .arrow.trickle .arrow-line {
+      border-top: 1px dotted #9333ea;
+    }
+
+    .arrow.trickle .arrow-line::after {
+      font-size: 0.7rem;
+      color: #9333ea;
+    }
+
+    .arrow.trickle .arrow-label {
+      font-size: 0.7rem;
+      color: #9333ea;
+    }
+
+    /* Trickle ICE from WEB */
+    #arrow-trickle-web-python {
+      top: 195px;
+      left: 16%;
+      width: 68%;
+    }
+
+    /* Trickle ICE from PYTHON */
+    #arrow-trickle-python-web {
+      top: 220px;
+      left: 16%;
+      width: 68%;
     }
 
     /* --- CONTROLS & VIDEO ------------------------------------------------- */
@@ -404,6 +433,18 @@
     <div class="arrow-line"></div>
     <div class="arrow-label">WEB CLIENT ↔ PYTHON (ICE connected)</div>
   </div>
+
+  <!-- Trickle ICE: WEB → PYTHON -->
+  <div class="arrow trickle" id="arrow-trickle-web-python">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">trickle: WEB sends ICE candidates</div>
+  </div>
+
+  <!-- Trickle ICE: PYTHON → WEB -->
+  <div class="arrow trickle reverse" id="arrow-trickle-python-web">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">trickle: PYTHON sends ICE candidates</div>
+  </div>
 </section>
 
 <section id="controls">
@@ -437,6 +478,8 @@
     'python-web': document.getElementById('arrow-python-web'),
     'python-stun': document.getElementById('arrow-python-stun'),
     'ice-connect': document.getElementById('arrow-ice-connect'),
+    'trickle-web-python': document.getElementById('arrow-trickle-web-python'),
+    'trickle-python-web': document.getElementById('arrow-trickle-python-web'),
   };
 
   // Time measurement
@@ -535,9 +578,18 @@
       }
     });
 
+    let webCandidateCount = 0;
     pc.addEventListener('icecandidate', event => {
       if (event.candidate) {
-        addLog('WEB CLIENT', 'New ICE candidate: ' + event.candidate.candidate, 'tag-web');
+        webCandidateCount++;
+        addLog('WEB CLIENT', 'New ICE candidate #' + webCandidateCount + ': ' + event.candidate.candidate.substring(0, 50) + '...', 'tag-web');
+        // Activate trickle arrow on first candidate after offer sent
+        if (webCandidateCount === 1) {
+          activateArrow('trickle-web-python');
+        }
+      } else {
+        // null candidate means gathering complete
+        addLog('WEB CLIENT', 'ICE gathering complete (sent ' + webCandidateCount + ' candidates)', 'tag-web');
       }
     });
 
@@ -586,6 +638,13 @@
     await pc.setRemoteDescription(answer);
 
     addLog('WEB CLIENT', 'Answer applied. ICE negotiation ongoing in background (trickle ICE)...', 'tag-web');
+    
+    // Simulate Python sending trickle ICE candidates back
+    // (In reality these would come via the answer SDP or a separate signaling channel)
+    setTimeout(() => {
+      activateArrow('trickle-python-web');
+      addLog('PYTHON → WEB', 'Python sends ICE candidates via trickle ICE', 'tag-python');
+    }, 200);
   }
 </script>
 </body>
