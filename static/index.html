@@ -735,13 +735,26 @@
     return elapsed;
   }
 
-  function activateArrow(name) {
+  function activateArrow(name, timing) {
     const el = arrows[name];
     if (!el) return;
     el.classList.remove('active');
     // reflow for opnieuw starten animatie
     void el.offsetWidth;
     el.classList.add('active');
+    
+    // Add timing number with timestamp to arrow label if provided
+    if (timing !== undefined) {
+      const label = el.querySelector('.arrow-label');
+      if (label) {
+        const originalText = label.textContent;
+        // Check if timing is already added
+        if (!originalText.match(/^\d+\s*\(/)) {
+          const elapsed = startTime ? Math.round(performance.now() - startTime) : 0;
+          label.textContent = timing + ' (' + elapsed + 'ms) ' + originalText;
+        }
+      }
+    }
   }
 
   function addLog(tag, message, tagClass) {
@@ -1005,12 +1018,12 @@
       if (pc.iceGatheringState === 'gathering') {
         setTimeValue('time1');
         addLog('WEB → STUN', 'Browser starts contacting STUN for ICE candidates. (tijd 1)', 'tag-stun');
-        activateArrow('web-stun');
+        activateArrow('web-stun', '1');
       }
       if (pc.iceGatheringState === 'complete') {
         setTimeValue('time2');
         addLog('STUN → WEB', 'ICE gathering complete; candidates now known in the browser. (tijd 2)', 'tag-stun');
-        activateArrow('stun-web');
+        activateArrow('stun-web', '2');
       }
     });
 
@@ -1035,11 +1048,11 @@
           hasTurnCandidate = true;
           setTimeValue('time3');
           addLog('WEB → TURN', 'Requesting relay allocation from TURN server. (tijd 3)', 'tag-stun');
-          activateArrow('web-turn');
+          activateArrow('web-turn', '3');
           setTimeout(() => {
             setTimeValue('time4');
             addLog('TURN → WEB', 'TURN relay candidate allocated. (tijd 4)', 'tag-stun');
-            activateArrow('turn-web');
+            activateArrow('turn-web', '4');
           }, 100);
         }
       } else {
@@ -1178,12 +1191,13 @@
 
     setTimeValue('time5');
     addLog('WEB → SIGNALING', 'Sending offer with ICE candidates to signaling server /offer… (tijd 5)', 'tag-signaling');
-    activateArrow('web-signaling');
+    activateArrow('web-signaling', '5');
 
     // Simulate signaling server forwarding to Python
     await new Promise(r => setTimeout(r, 100));
-    addLog('SIGNALING → PYTHON', 'Signaling server forwards offer to PYTHON WEBRTC.', 'tag-signaling');
-    activateArrow('signaling-python');
+    setTimeValue('time6');
+    addLog('SIGNALING → PYTHON', 'Signaling server forwards offer to PYTHON WEBRTC. (tijd 6)', 'tag-signaling');
+    activateArrow('signaling-python', '6');
 
     const response = await fetch('/offer', {
       method: 'POST',
@@ -1195,21 +1209,25 @@
     });
 
     // Show Python ICE gathering (happens during offer processing)
-    addLog('PYTHON → STUN', 'Python ICE gathering in background (check server console).', 'tag-python');
-    activateArrow('python-stun');
+    setTimeValue('time7');
+    addLog('PYTHON → STUN', 'Python ICE gathering in background (check server console). (tijd 7)', 'tag-python');
+    activateArrow('python-stun', '7');
 
     await new Promise(r => setTimeout(r, 100));
-    addLog('STUN → PYTHON', 'STUN sends candidates back to Python.', 'tag-stun');
-    activateArrow('stun-python');
+    setTimeValue('time8');
+    addLog('STUN → PYTHON', 'STUN sends candidates back to Python. (tijd 8)', 'tag-stun');
+    activateArrow('stun-python', '8');
 
     // Python TURN request (if configured)
     await new Promise(r => setTimeout(r, 100));
-    addLog('PYTHON → TURN', 'Python requests TURN relay allocation.', 'tag-python');
-    activateArrow('python-turn');
+    setTimeValue('time9');
+    addLog('PYTHON → TURN', 'Python requests TURN relay allocation. (tijd 9)', 'tag-python');
+    activateArrow('python-turn', '9');
 
     await new Promise(r => setTimeout(r, 100));
-    addLog('TURN → PYTHON', 'TURN relay allocation (may timeout if unavailable).', 'tag-stun');
-    activateArrow('turn-python');
+    setTimeValue('time10');
+    addLog('TURN → PYTHON', 'TURN relay allocation (may timeout if unavailable). (tijd 10)', 'tag-stun');
+    activateArrow('turn-python', '10');
 
     const answer = await response.json();
     
@@ -1239,12 +1257,14 @@
       addLog('WEB CLIENT', `Server NAT: ${answer.nat_info.nat_type}`, 'tag-join');
     }
     
-    addLog('PYTHON → SIGNALING', 'Python sends answer back to signaling server.', 'tag-signaling');
-    activateArrow('python-signaling');
+    setTimeValue('time11');
+    addLog('PYTHON → SIGNALING', 'Python sends answer back to signaling server. (tijd 11)', 'tag-signaling');
+    activateArrow('python-signaling', '11');
 
     await new Promise(r => setTimeout(r, 100));
-    addLog('SIGNALING → WEB', 'Signaling server forwards answer to WEB CLIENT.', 'tag-signaling');
-    activateArrow('signaling-web');
+    setTimeValue('time12');
+    addLog('SIGNALING → WEB', 'Signaling server forwards answer to WEB CLIENT. (tijd 12)', 'tag-signaling');
+    activateArrow('signaling-web', '12');
 
     await pc.setRemoteDescription(answer);
 
