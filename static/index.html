@@ -338,8 +338,9 @@
 <h1>WebRTC sequence: Web Client → STUN → Python</h1>
 <p>
   Druk op <strong>Start WebRTC flow</strong> en kijk hoe diagram, lifelines en log
-  exact de stappen in je tekening volgen. De getallen 1–5 op de lifeline
-  corresponderen met de horizontale pijlen.
+  exact de stappen volgen. <strong>Trickle ICE</strong>: ICE candidates worden verzameld (tijd 1-2)
+  en daarna meegestuurd in de offer (tijd 3). De dunne paarse pijlen tonen waar candidates
+  in de achtergrond kunnen worden uitgewisseld.
 </p>
 
 <section class="diagram">
@@ -413,13 +414,13 @@
   <!-- WEB → PYTHON (signaling / offer JSON) -->
   <div class="arrow" id="arrow-web-python">
     <div class="arrow-line"></div>
-    <div class="arrow-label">WEB CLIENT → PYTHON (offer JSON)</div>
+    <div class="arrow-label">WEB CLIENT → PYTHON (offer + ICE candidates)</div>
   </div>
 
   <!-- PYTHON → WEB (answer JSON) -->
   <div class="arrow reverse" id="arrow-python-web">
     <div class="arrow-line"></div>
-    <div class="arrow-label">PYTHON → WEB CLIENT (answer JSON)</div>
+    <div class="arrow-label">PYTHON → WEB CLIENT (answer + ICE candidates)</div>
   </div>
 
   <!-- PYTHON ↔ STUN -->
@@ -607,13 +608,19 @@
     });
 
     // 3. Offer creëren
-    setTimeValue('time3');
-    addLog('WEB CLIENT', 'Creating SDP offer… (tijd 3)', 'tag-web');
+    addLog('WEB CLIENT', 'Creating SDP offer…', 'tag-web');
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // Direct versturen - NIET wachten op ICE (trickle ICE!)
-    addLog('SIGNALING', 'Sending offer as JSON to PYTHON backend /offer… (tijd 3)', 'tag-join');
+    // Wait for ICE gathering to complete (for demo simplicity)
+    // Note: In production, candidates could be sent separately (true trickle ICE)
+    addLog('WEB CLIENT', 'Waiting for ICE candidates to be gathered...', 'tag-web');
+    while (pc.iceGatheringState !== 'complete') {
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    setTimeValue('time3');
+    addLog('SIGNALING', 'Sending offer with ICE candidates to PYTHON backend /offer… (tijd 3)', 'tag-join');
     activateArrow('web-python');
 
     const response = await fetch('/offer', {
