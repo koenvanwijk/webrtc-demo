@@ -258,10 +258,20 @@ async def on_shutdown(app: web.Application):
 if __name__ == "__main__":
     # Enable aiortc logging for debugging
     import logging
+    import sys
     logging.basicConfig(level=logging.INFO)
     
-    print("Starting server on http://0.0.0.0:8085")
-    print("Open http://<server-ip>:8085 in your browser to test WebRTC")
+    # Get port from command line argument or use default
+    port = 8085
+    if len(sys.argv) > 1:
+        try:
+            port = int(sys.argv[1])
+        except ValueError:
+            print(f"Invalid port number: {sys.argv[1]}")
+            sys.exit(1)
+    
+    print(f"Starting server on http://0.0.0.0:{port}")
+    print(f"Open http://<server-ip>:{port} in your browser to test WebRTC")
     
     async def startup():
         """Run NAT detection on startup."""
@@ -276,4 +286,4 @@ if __name__ == "__main__":
     app.router.add_post("/offer", offer)
     app.router.add_static("/static/", path="static", name="static")
     
-    web.run_app(app, host="0.0.0.0", port=8085)
+    web.run_app(app, host="0.0.0.0", port=port)
