@@ -209,13 +209,14 @@ async def offer(request: web.Request):
     @pc.on("track")
     def on_track(track):
         print(f"[PYTHON] Track received: {track.kind}")
-        media_sink = MediaBlackhole()
-        media_sink.addTrack(track)
+        # Echo the received track back to the client
+        pc.addTrack(track)
+        print(f"[PYTHON] Echoing {track.kind} track back to WEB CLIENT")
 
-    # Add video track to send back to the client
-    video_track = ColorBarsVideoTrack()
-    pc.addTrack(video_track)
-    print("[PYTHON] Added color bars video track to send to WEB CLIENT")
+    # Optionally add color bars (comment out if you only want the echo)
+    # video_track = ColorBarsVideoTrack()
+    # pc.addTrack(video_track)
+    # print("[PYTHON] Added color bars video track to send to WEB CLIENT")
 
     # Remote description zetten (offer uit de browser)
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])

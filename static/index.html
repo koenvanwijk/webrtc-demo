@@ -667,7 +667,10 @@
     <video id="localVideo" autoplay playsinline muted></video>
   </div>
   <div>
-    <div style="font-size:0.8rem; margin-bottom:0.25rem;">Remote stream (from PYTHON)</div>
+    <div style="font-size:0.8rem; margin-bottom:0.25rem;">
+      Remote stream (from PYTHON)
+      <span id="latencyDisplay" style="color: #10b981; font-weight: 600; margin-left: 8px;"></span>
+    </div>
     <video id="remoteVideo" autoplay playsinline></video>
   </div>
 </section>
@@ -695,6 +698,7 @@
   const startBtn = document.getElementById('startBtn');
   const localVideo = document.getElementById('localVideo');
   const remoteVideo = document.getElementById('remoteVideo');
+  const latencyDisplay = document.getElementById('latencyDisplay');
 
   const arrows = {
     'web-stun': document.getElementById('arrow-web-stun'),
@@ -1289,6 +1293,49 @@
     
     // Don't analyze immediately - wait for connection to succeed or fail
     // Analysis will be triggered by the iceconnectionstatechange event
+    
+    // Start latency measurement
+    startLatencyMeasurement(pc);
+  }
+
+  function startLatencyMeasurement(pc) {
+    setInterval(async () => {
+      try {
+        const stats = await pc.getStats();
+        let inboundRtp = null;
+        let outboundRtp = null;
+        
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp' && report.kind === 'video') {
+            inboundRtp = report;
+          }
+          if (report.type === 'outbound-rtp' && report.kind === 'video') {
+            outboundRtp = report;
+          }
+        });
+        
+        if (inboundRtp) {
+          // Get jitter (in seconds) and convert to ms
+          const jitter = inboundRtp.jitter ? (inboundRtp.jitter * 1000).toFixed(1) : 'N/A';
+          
+          // Estimate round-trip latency if we have timestamps
+          let roundTripTime = 'N/A';
+          
+          // Try to get RTT from candidate-pair stats
+          stats.forEach(report => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              if (report.currentRoundTripTime) {
+                roundTripTime = (report.currentRoundTripTime * 1000).toFixed(0);
+              }
+            }
+          });
+          
+          latencyDisplay.textContent = `RTT: ${roundTripTime}ms | Jitter: ${jitter}ms`;
+        }
+      } catch (e) {
+        console.error('Error measuring latency:', e);
+      }
+    }, 500); // Update every 500ms
   }
 </script>
 </body>
