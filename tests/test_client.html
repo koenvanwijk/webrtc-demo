@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Client Tests</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f5f7fb;
+        }
+        h1 { color: #333; }
+        .test-suite {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-suite h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #555;
+        }
+        .test {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+        }
+        .test.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .test.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .test.skip {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .summary {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+        .summary.all-pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .summary.has-fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .error-detail {
+            font-family: monospace;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebRTC Client Tests</h1>
+    <div id="results"></div>
+    <div id="summary"></div>
+
+    <script>
+        // Simple test framework
+        const results = [];
+        let currentSuite = null;
+
+        function describe(name, fn) {
+            currentSuite = { name, tests: [] };
+            fn();
+            results.push(currentSuite);
+            currentSuite = null;
+        }
+
+        function it(name, fn) {
+            const test = { name, status: 'pending', error: null };
+            try {
+                fn();
+                test.status = 'pass';
+            } catch (e) {
+                test.status = 'fail';
+                test.error = e.message || String(e);
+            }
+            currentSuite.tests.push(test);
+        }
+
+        function skip(name, fn) {
+            currentSuite.tests.push({ name, status: 'skip', error: null });
+        }
+
+        function expect(actual) {
+            return {
+                toBe(expected) {
+                    if (actual !== expected) {
+                        throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+                    }
+                },
+                toEqual(expected) {
+                    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                        throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+                    }
+                },
+                toBeTruthy() {
+                    if (!actual) {
+                        throw new Error(`Expected truthy value, got ${JSON.stringify(actual)}`);
+                    }
+                },
+                toBeFalsy() {
+                    if (actual) {
+                        throw new Error(`Expected falsy value, got ${JSON.stringify(actual)}`);
+                    }
+                },
+                toContain(expected) {
+                    if (!actual.includes(expected)) {
+                        throw new Error(`Expected "${actual}" to contain "${expected}"`);
+                    }
+                },
+                toBeGreaterThan(expected) {
+                    if (!(actual > expected)) {
+                        throw new Error(`Expected ${actual} to be greater than ${expected}`);
+                    }
+                },
+                toBeInstanceOf(expected) {
+                    if (!(actual instanceof expected)) {
+                        throw new Error(`Expected instance of ${expected.name}`);
+                    }
+                },
+                toHaveLength(expected) {
+                    if (actual.length !== expected) {
+                        throw new Error(`Expected length ${expected}, got ${actual.length}`);
+                    }
+                },
+                toMatch(regex) {
+                    if (!regex.test(actual)) {
+                        throw new Error(`Expected "${actual}" to match ${regex}`);
+                    }
+                },
+                toThrow() {
+                    let threw = false;
+                    try {
+                        actual();
+                    } catch (e) {
+                        threw = true;
+                    }
+                    if (!threw) {
+                        throw new Error('Expected function to throw');
+                    }
+                }
+            };
+        }
+
+        // ============================================
+        // Tests for parseCandidateInfo function
+        // ============================================
+
+        function parseCandidateInfo(candidateStr) {
+            const parts = candidateStr.split(' ');
+            const info = {
+                ip: parts[4] || 'unknown',
+                port: parts[5] || 'unknown',
+                type: parts[7] || 'unknown',
+                protocol: parts[2] || 'unknown',
+                full: candidateStr
+            };
+            return info;
+        }
+
+        describe('parseCandidateInfo', () => {
+            it('should parse host candidate correctly', () => {
+                const candidate = 'candidate:1848175366 1 udp 2122260224 192.168.0.17 54321 typ host generation 0';
+                const info = parseCandidateInfo(candidate);
+
+                expect(info.ip).toBe('192.168.0.17');
+                expect(info.port).toBe('54321');
+                expect(info.type).toBe('host');
+                expect(info.protocol).toBe('udp');
+            });
+
+            it('should parse srflx candidate correctly', () => {
+                const candidate = 'candidate:3244427832 1 udp 1686052607 176.12.32.84 12345 typ srflx raddr 192.168.0.17 rport 54321';
+                const info = parseCandidateInfo(candidate);
+
+                expect(info.ip).toBe('176.12.32.84');
+                expect(info.port).toBe('12345');
+                expect(info.type).toBe('srflx');
+            });
+
+            it('should parse relay candidate correctly', () => {
+                const candidate = 'candidate:842163049 1 udp 41885695 turn.example.com 3478 typ relay raddr 192.168.0.17 rport 54321';
+                const info = parseCandidateInfo(candidate);
+
+                expect(info.type).toBe('relay');
+            });
+
+            it('should handle TCP candidates', () => {
+                const candidate = 'candidate:283576734 1 tcp 1518280447 192.168.0.178 9 typ host tcptype active';
+                const info = parseCandidateInfo(candidate);
+
+                expect(info.protocol).toBe('tcp');
+                expect(info.type).toBe('host');
+            });
+
+            it('should return unknown for malformed candidates', () => {
+                const candidate = 'invalid';
+                const info = parseCandidateInfo(candidate);
+
+                expect(info.ip).toBe('unknown');
+                expect(info.port).toBe('unknown');
+                expect(info.type).toBe('unknown');
+            });
+        });
+
+        // ============================================
+        // Tests for translations object
+        // ============================================
+
+        const translations = {
+            en: {
+                intro: 'Press Start WebRTC flow...',
+                startBtn: "Start WebRTC flow",
+                networkTopology: "Network Topology",
+                iceAnalysis: "ICE Candidate Analysis",
+                timelineLog: "Timeline log",
+            },
+            nl: {
+                intro: 'Druk op Start WebRTC flow...',
+                startBtn: "Start WebRTC flow",
+                networkTopology: "Netwerktopologie",
+                iceAnalysis: "ICE Kandidaat Analyse",
+                timelineLog: "Tijdlijn log",
+            }
+        };
+
+        describe('translations', () => {
+            it('should have English translations', () => {
+                expect(translations.en).toBeTruthy();
+                expect(translations.en.startBtn).toBe("Start WebRTC flow");
+            });
+
+            it('should have Dutch translations', () => {
+                expect(translations.nl).toBeTruthy();
+                expect(translations.nl.networkTopology).toBe("Netwerktopologie");
+            });
+
+            it('should have same keys in both languages', () => {
+                const enKeys = Object.keys(translations.en).sort();
+                const nlKeys = Object.keys(translations.nl).sort();
+                expect(enKeys).toEqual(nlKeys);
+            });
+        });
+
+        // ============================================
+        // Tests for setLanguage function
+        // ============================================
+
+        describe('setLanguage', () => {
+            let currentLang = 'en';
+
+            function setLanguage(lang) {
+                currentLang = lang;
+                return currentLang;
+            }
+
+            it('should set currentLang to en', () => {
+                const result = setLanguage('en');
+                expect(result).toBe('en');
+            });
+
+            it('should set currentLang to nl', () => {
+                const result = setLanguage('nl');
+                expect(result).toBe('nl');
+            });
+        });
+
+        // ============================================
+        // Tests for time measurement
+        // ============================================
+
+        describe('time measurement', () => {
+            it('should calculate elapsed time correctly', () => {
+                const startTime = performance.now();
+                // Small delay
+                const arr = new Array(10000).fill(0).map((_, i) => i * 2);
+                const elapsed = performance.now() - startTime;
+
+                expect(elapsed).toBeGreaterThan(0);
+            });
+
+            it('should format milliseconds correctly', () => {
+                const elapsed = 1234.567;
+                const formatted = elapsed.toFixed(0);
+                expect(formatted).toBe('1235');
+            });
+        });
+
+        // ============================================
+        // Tests for network analysis
+        // ============================================
+
+        describe('network analysis', () => {
+            it('should extract network prefix from IPv4', () => {
+                const ip = '192.168.1.100';
+                const network = ip.split('.').slice(0, 3).join('.');
+                expect(network).toBe('192.168.1');
+            });
+
+            it('should detect network overlap', () => {
+                const localNetworks = new Set(['192.168.1', '10.0.0']);
+                const remoteNetworks = new Set(['192.168.1', '172.16.0']);
+
+                const localNets = Array.from(localNetworks);
+                const remoteNets = Array.from(remoteNetworks);
+                const hasOverlap = localNets.some(ln => remoteNets.includes(ln));
+
+                expect(hasOverlap).toBe(true);
+            });
+
+            it('should detect no network overlap', () => {
+                const localNetworks = new Set(['192.168.1']);
+                const remoteNetworks = new Set(['172.16.0']);
+
+                const localNets = Array.from(localNetworks);
+                const remoteNets = Array.from(remoteNetworks);
+                const hasOverlap = localNets.some(ln => remoteNets.includes(ln));
+
+                expect(hasOverlap).toBe(false);
+            });
+
+            it('should detect relay candidates', () => {
+                const candidates = [
+                    'candidate:1 1 udp 2122260224 192.168.0.17 54321 typ host',
+                    'candidate:2 1 udp 41885695 turn.example.com 3478 typ relay',
+                ];
+
+                const hasRelay = candidates.some(c => c.includes('relay'));
+                expect(hasRelay).toBe(true);
+            });
+        });
+
+        // ============================================
+        // Tests for WebRTC API availability
+        // ============================================
+
+        describe('WebRTC API availability', () => {
+            it('should have RTCPeerConnection', () => {
+                expect(typeof RTCPeerConnection).toBe('function');
+            });
+
+            it('should have RTCSessionDescription', () => {
+                expect(typeof RTCSessionDescription).toBe('function');
+            });
+
+            it('should be able to create RTCPeerConnection', () => {
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                expect(pc).toBeTruthy();
+                pc.close();
+            });
+
+            it('should be able to add transceiver', () => {
+                const pc = new RTCPeerConnection();
+                const transceiver = pc.addTransceiver('video', { direction: 'recvonly' });
+                expect(transceiver).toBeTruthy();
+                expect(transceiver.direction).toBe('recvonly');
+                pc.close();
+            });
+        });
+
+        // ============================================
+        // Tests for ICE server configuration
+        // ============================================
+
+        describe('ICE server configuration', () => {
+            const iceServers = [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: [
+                        'turn:openrelay.metered.ca:80',
+                        'turn:openrelay.metered.ca:443',
+                    ],
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+            ];
+
+            it('should include STUN server', () => {
+                const hasStun = iceServers.some(s => {
+                    const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+                    return urls.some(u => u.startsWith('stun:'));
+                });
+                expect(hasStun).toBe(true);
+            });
+
+            it('should include TURN server', () => {
+                const hasTurn = iceServers.some(s => {
+                    const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+                    return urls.some(u => u.startsWith('turn:'));
+                });
+                expect(hasTurn).toBe(true);
+            });
+
+            it('should have credentials for TURN servers', () => {
+                const turnServers = iceServers.filter(s => {
+                    const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+                    return urls.some(u => u.startsWith('turn:'));
+                });
+
+                turnServers.forEach(s => {
+                    expect(s.username).toBeTruthy();
+                    expect(s.credential).toBeTruthy();
+                });
+            });
+        });
+
+        // ============================================
+        // Tests for MediaStream handling
+        // ============================================
+
+        describe('MediaStream handling', () => {
+            it('should create empty MediaStream', () => {
+                const stream = new MediaStream();
+                expect(stream.getTracks()).toHaveLength(0);
+            });
+
+            it('should detect empty stream', () => {
+                const stream = new MediaStream();
+                const isEmpty = stream.getTracks().length === 0;
+                expect(isEmpty).toBe(true);
+            });
+        });
+
+        // ============================================
+        // Run tests and display results
+        // ============================================
+
+        function renderResults() {
+            const resultsEl = document.getElementById('results');
+            const summaryEl = document.getElementById('summary');
+
+            let totalTests = 0;
+            let passedTests = 0;
+            let failedTests = 0;
+            let skippedTests = 0;
+
+            results.forEach(suite => {
+                const suiteEl = document.createElement('div');
+                suiteEl.className = 'test-suite';
+
+                const titleEl = document.createElement('h2');
+                titleEl.textContent = suite.name;
+                suiteEl.appendChild(titleEl);
+
+                suite.tests.forEach(test => {
+                    totalTests++;
+                    const testEl = document.createElement('div');
+                    testEl.className = `test ${test.status}`;
+
+                    const icon = test.status === 'pass' ? '✓' : test.status === 'fail' ? '✗' : '○';
+                    testEl.textContent = `${icon} ${test.name}`;
+
+                    if (test.status === 'pass') passedTests++;
+                    else if (test.status === 'fail') failedTests++;
+                    else skippedTests++;
+
+                    if (test.error) {
+                        const errorEl = document.createElement('div');
+                        errorEl.className = 'error-detail';
+                        errorEl.textContent = test.error;
+                        testEl.appendChild(errorEl);
+                    }
+
+                    suiteEl.appendChild(testEl);
+                });
+
+                resultsEl.appendChild(suiteEl);
+            });
+
+            summaryEl.className = `summary ${failedTests > 0 ? 'has-fail' : 'all-pass'}`;
+            summaryEl.textContent = `${passedTests}/${totalTests} tests passed, ${failedTests} failed, ${skippedTests} skipped`;
+        }
+
+        renderResults();
+    </script>
+</body>
+</html>

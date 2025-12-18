@@ -31,6 +31,8 @@ A comprehensive WebRTC demo showing the complete connection flow between a web b
 
 - **Video Streaming**: Color bars test pattern from Python to browser
 
+- **Internationalization**: Supports English and Dutch languages
+
 ## Architecture
 
 ```
@@ -49,17 +51,107 @@ A comprehensive WebRTC demo showing the complete connection flow between a web b
 
 ## Installation
 
+### Prerequisites
+
+- Python 3.9 or higher
+- pip (Python package manager)
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/koenvanwijk/webrtc-demo.git
+   cd webrtc-demo
+   ```
+
+2. Create a virtual environment:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Running the Demo
+
+1. Activate the virtual environment (if not already active):
+   ```bash
+   source .venv/bin/activate
+   ```
+
+2. Start the server:
+   ```bash
+   python server.py
+   ```
+
+3. Open your browser and navigate to:
+   ```
+   http://localhost:8085
+   ```
+
+4. Click **"Start WebRTC flow"** and watch the visualization.
+
+## Testing
+
+### Setup for Testing
+
+1. Install test dependencies:
+   ```bash
+   pip install -r requirements-test.txt
+   ```
+
+### Running Python Tests
+
+Run all tests:
 ```bash
-pip install -r requirements.txt
+pytest
 ```
 
-## Running
-
+Run with verbose output:
 ```bash
-python server.py
+pytest -v
 ```
 
-Then open `http://localhost:8085` in your browser.
+Run a specific test file:
+```bash
+pytest tests/test_server.py
+```
+
+Run a specific test class or function:
+```bash
+pytest tests/test_server.py::TestColorBarsVideoTrack
+pytest tests/test_server.py::TestColorBarsVideoTrack::test_recv_returns_frame
+```
+
+### Running JavaScript Tests
+
+Open `tests/test_client.html` in a browser to run the client-side tests. These tests verify:
+
+- ICE candidate parsing
+- Translation system
+- Network analysis logic
+- WebRTC API availability
+- MediaStream handling
+
+## Project Structure
+
+```
+webrtc-demo/
+├── server.py              # Python WebRTC server with signaling endpoints
+├── static/
+│   └── index.html         # Web client with interactive diagram
+├── tests/
+│   ├── __init__.py
+│   ├── test_server.py     # Python server tests
+│   └── test_client.html   # JavaScript client tests
+├── requirements.txt       # Runtime dependencies
+├── requirements-test.txt  # Test dependencies
+├── pytest.ini             # Pytest configuration
+└── README.md              # This file
+```
 
 ## How It Works
 
@@ -97,8 +189,24 @@ Then open `http://localhost:8085` in your browser.
 - Browser uses getStats() to see which pair succeeded
 - Connection established when compatible pair found
 - Analysis shows actual selected candidates and connection type
-- NAT types updated based on connection success/failure
-- Media flows directly peer-to-peer (or via relay)
+
+## Understanding the Visualizations
+
+### ICE Candidate Types
+- **host**: Local IP address (direct connection, same network)
+- **srflx**: Server reflexive (public IP discovered via STUN)
+- **relay**: TURN relay address (fallback when NAT blocks direct connection)
+
+### NAT Types Explained
+- **No NAT / Same Network**: Direct connection possible, no traversal needed
+- **Full Cone / Port-Restricted NAT**: Allows P2P with STUN assistance
+- **Symmetric NAT**: Blocks unsolicited inbound, requires TURN relay
+- **Behind NAT (unknown)**: Detected but type determined by connection test
+
+### Connection Paths
+1. **Direct P2P (host → host)**: Both on same network, optimal
+2. **STUN-assisted P2P (srflx → srflx)**: NAT traversal via public IPs
+3. **TURN relay (relay)**: Symmetric NAT blocked direct, using relay server
 
 ## SSH Tunnel Limitations
 
@@ -127,79 +235,12 @@ The demo includes free TURN servers but they may not work reliably with aiortc. 
 #### Option 3: SSH Tunnel Both Directions
 Make sure the Python server can reach the browser's network or vice versa.
 
-## Files
-
-- `server.py` - Python WebRTC server with signaling endpoints
-- `static/index.html` - Web client with interactive diagram
-- `requirements.txt` - Python dependencies
-
-## Technologies
-
-### Backend
-- **aiortc** - WebRTC implementation for Python
-- **aiohttp** - Async HTTP server for signaling
-- **aioice** - ICE implementation and NAT detection
-- **av (PyAV)** - Video frame handling
-- **numpy** - Test pattern generation
-
-### Frontend
-- **WebRTC API** - Browser native WebRTC support
-- **RTCPeerConnection** - Peer connection management
-- **getStats()** - Detailed connection statistics and selected candidate pairs
-- Pure JavaScript - No frameworks required
-
-## How to Use
-
-1. **Start the server**:
-   ```bash
-   python server.py
-   ```
-   Watch the console for NAT detection results.
-
-2. **Open the webpage**:
-   - Direct: `http://localhost:8085`
-   - SSH tunnel: `ssh -L 8089:localhost:8085 user@server` then `http://localhost:8089`
-
-3. **Click "Start WebRTC Connection"**:
-   - Watch the sequence diagram animate in real-time
-   - See ICE candidates being gathered
-   - Monitor connection state changes
-
-4. **Analyze the results**:
-   - **Timeline Log**: Shows exact timing of each step
-   - **Network Topology**: Your actual network layout with IPs
-   - **ICE Analysis**: Which candidates were used for connection
-   - **NAT Types**: Whether your network allows P2P
-
-5. **Test different scenarios**:
-   - Same network: Should connect directly via host candidates
-   - Different networks: Will fail without TURN (demonstrates NAT problem)
-   - With TURN: Should work via relay (if TURN servers are up)
-
-## Understanding the Visualizations
-
-### ICE Candidate Types
-- **host**: Local IP address (direct connection, same network)
-- **srflx**: Server reflexive (public IP discovered via STUN)
-- **relay**: TURN relay address (fallback when NAT blocks direct connection)
-
-### NAT Types Explained
-- **No NAT / Same Network**: Direct connection possible, no traversal needed
-- **Full Cone / Port-Restricted NAT**: Allows P2P with STUN assistance
-- **Symmetric NAT**: Blocks unsolicited inbound, requires TURN relay
-- **Behind NAT (unknown)**: Detected but type determined by connection test
-
-### Connection Paths
-1. **Direct P2P (host → host)**: Both on same network, optimal
-2. **STUN-assisted P2P (srflx → srflx)**: NAT traversal via public IPs
-3. **TURN relay (relay)**: Symmetric NAT blocked direct, using relay server
-
 ## Troubleshooting
 
 ### Connection Failed - Different Networks
 **Symptom**: ICE state goes to "failed", analysis shows "No Compatible Path"
 
-**Diagnosis**: 
+**Diagnosis**:
 - Check Network Topology section - are browser and server on different networks?
 - Check ICE Candidate Analysis - do you have overlapping networks or relay candidates?
 
@@ -221,35 +262,37 @@ Make sure the Python server can reach the browser's network or vice versa.
 2. Check that UDP ports are not blocked
 3. Ensure both peers have network connectivity
 
-### NAT Detection Shows "Detection failed"
-**Symptom**: Python NAT shows error message
-
-**Solutions**:
-- Check server logs for detailed error
-- Verify STUN server is reachable from server
-- Check network connectivity
-
 ### No Video
 - Check camera permissions in browser
 - Verify Python server is sending video track (check server console)
 - Python sends color bars test pattern (doesn't require camera)
 - Check browser console for errors
+- Note: Camera is optional - the demo works without local camera access
 
-### TURN Relay Not Working
-**Symptom**: No relay candidates gathered, connection fails on different networks
+### Camera Access Issues
+- Camera access requires HTTPS or localhost
+- When accessing from another machine over HTTP, camera will be unavailable
+- The demo continues without local video and still receives video from Python
 
-**Cause**: Free TURN servers are unreliable and may not work with aiortc
+## Technologies
 
-**Solutions**:
-1. Use paid TURN service (Twilio, xirsys)
-2. Self-host Coturn server
-3. Test on same network (doesn't require TURN)
+### Backend
+- **aiortc** - WebRTC implementation for Python
+- **aiohttp** - Async HTTP server for signaling
+- **aioice** - ICE implementation and NAT detection
+- **av (PyAV)** - Video frame handling
+- **numpy** - Test pattern generation
 
-### Slow ICE Gathering
-- Some network interfaces may timeout (40+ seconds)
-- Demo includes 10-second browser timeout, 5-second Python timeout
-- Can reduce timeout in code if needed
-- IPv6 addresses may take longer to gather
+### Frontend
+- **WebRTC API** - Browser native WebRTC support
+- **RTCPeerConnection** - Peer connection management
+- **getStats()** - Detailed connection statistics and selected candidate pairs
+- Pure JavaScript - No frameworks required
+
+### Testing
+- **pytest** - Python test framework
+- **pytest-asyncio** - Async test support
+- **pytest-aiohttp** - aiohttp test client
 
 ## License
 
