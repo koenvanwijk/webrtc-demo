@@ -734,6 +734,9 @@
     'relay-flow': document.getElementById('arrow-relay-flow'),
   };
 
+  // Current language - initialized before use
+  let currentLang = 'en';
+
   const translations = {
     en: {
       intro: `Press <strong>Start WebRTC flow</strong> and watch how the diagram, lifelines, and log follow the exact steps. The <strong>SIGNALING SERVER</strong> (Python HTTP server) sends SDP offers and answers. <strong>STUN</strong> discovers public IP addresses for NAT traversal. <strong>TURN</strong> provides media relay as fallback when direct P2P connection is not possible.`,
@@ -1053,23 +1056,20 @@
   };
 
   async function startWebRTCFlow() {
-    // Check for WebRTC support
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      addLog('ERROR', 'Camera access not supported. This demo requires a secure context (HTTPS) or localhost. Please check your browser settings.', 'tag-join');
-      startBtn.disabled = false;
-      return;
-    }
+    // 1. Local media (optional - the demo receives video from Python, doesn't require local camera)
+    let stream = new MediaStream(); // Start with empty stream
 
-    // 1. Local media
-    addLog('WEB CLIENT', 'Requesting camera/mic…', 'tag-web');
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      localVideo.srcObject = stream;
-    } catch (e) {
-      addLog('ERROR', 'Camera access denied or failed: ' + e.message + '. Continuing without local video.', 'tag-join');
-      // Create a dummy stream or continue without
-      stream = new MediaStream(); // Empty stream
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      addLog('WEB CLIENT', 'Requesting camera/mic…', 'tag-web');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        localVideo.srcObject = stream;
+      } catch (e) {
+        addLog('WEB CLIENT', 'Camera access denied or unavailable: ' + e.message + '. Continuing without local video.', 'tag-web');
+        // Continue with empty stream - Python will still send video to us
+      }
+    } else {
+      addLog('WEB CLIENT', 'Camera API not available (non-HTTPS context). Continuing without local video - will still receive from Python.', 'tag-web');
     }
 
     // 2. PeerConnection met STUN/TURN
@@ -1096,7 +1096,14 @@
       iceCandidatePoolSize: 10
     });
 
-    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    // Add local tracks if we have them
+    if (stream.getTracks().length > 0) {
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    } else {
+      // No local camera - add a recvonly transceiver so we can still receive video from Python
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      addLog('WEB CLIENT', 'No local video - set up to receive video only', 'tag-web');
+    }
 
     pc.addEventListener('track', event => {
       addLog('WEB CLIENT', 'Received remote track from PYTHON WEBRTC.', 'tag-web');
