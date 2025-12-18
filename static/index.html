@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>WebRTC – Web Client ↔ STUN ↔ Python</title>
@@ -294,6 +294,23 @@
       box-shadow: none;
     }
 
+    select {
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      border: none;
+      background: #f3f4f6;
+      color: #374151;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      margin-left: 0.5rem;
+    }
+
+    select:focus {
+      outline: none;
+      box-shadow: 0 3px 8px rgba(37,99,235,0.35);
+    }
+
     #video-row {
       margin: 1rem 0;
       display: flex;
@@ -436,11 +453,15 @@
 </head>
 <body>
 <h1>WebRTC: Web Client ↔ Signaling ↔ STUN ↔ TURN ↔ Python</h1>
-<p>
-  Druk op <strong>Start WebRTC flow</strong> en kijk hoe diagram, lifelines en log
-  exact de stappen volgen. De <strong>SIGNALING SERVER</strong> (Python HTTP server) verzendt
-  SDP offers en answers. <strong>STUN</strong> ontdekt publieke IP-adressen voor NAT traversal.
-  <strong>TURN</strong> biedt media relay als fallback wanneer directe P2P connectie niet mogelijk is.
+<div style="text-align: right; margin-bottom: 1rem;">
+  <label for="language-select">Language: </label>
+  <select id="language-select">
+    <option value="en">English</option>
+    <option value="nl">Nederlands</option>
+  </select>
+</div>
+<p data-i18n="intro">
+  Press <strong>Start WebRTC flow</strong> and watch how the diagram, lifelines, and log follow the exact steps. The <strong>SIGNALING SERVER</strong> (Python HTTP server) sends SDP offers and answers. <strong>STUN</strong> discovers public IP addresses for NAT traversal. <strong>TURN</strong> provides media relay as fallback when direct P2P connection is not possible.
 </p>
 <p style="background: #fff3cd; padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; border-left: 4px solid #ffc107;">
   <strong>⚠️ SSH Tunnel Note:</strong> If running through SSH tunnel, direct P2P connection may fail. 
@@ -448,7 +469,7 @@
   but they may not work reliably with aiortc.
 </p>
 
-<h2 style="margin-top:2rem;">Network Topology</h2>
+<h2 style="margin-top:2rem;" data-i18n="networkTopology">Network Topology</h2>
 <div class="network-layer">
   <div class="network-zone">
     <div class="zone-label">Local Network (Browser)</div>
@@ -551,7 +572,7 @@
    <!-- Lifelines -->
   <div class="lifeline lifeline-web">
     <div class="lifeline-line"></div>
-    <div class="time-axis-label">tijd</div>
+    <div class="time-axis-label">time</div>
     <!-- ticks op dezelfde hoogte als de pijlen -->
     <div class="time-tick" style="top: 15px;">1<span id="time1" class="time-value"></span></div>
     <div class="time-tick" style="top: 45px;">2<span id="time2" class="time-value"></span></div>
@@ -672,7 +693,7 @@
   </div>
 </section>
 
-<h2>ICE Candidate Analysis</h2>
+<h2 data-i18n="iceAnalysis">ICE Candidate Analysis</h2>
 <div id="ice-analysis" style="display:none; background:#f8f9fa; padding:1rem; border-radius:8px; margin:1rem 0; border-left:4px solid #6c757d;">
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
     <div>
@@ -687,7 +708,7 @@
   <div id="match-analysis" style="margin-top:1rem; padding:1rem; background:white; border-radius:6px;"></div>
 </div>
 
-<h2>Timeline log</h2>
+<h2 data-i18n="timelineLog">Timeline log</h2>
 <div id="log"></div>
 
 <script>
@@ -712,6 +733,61 @@
     'ice-connect': document.getElementById('arrow-ice-connect'),
     'relay-flow': document.getElementById('arrow-relay-flow'),
   };
+
+  // Current language - initialized before use
+  let currentLang = 'en';
+
+  const translations = {
+    en: {
+      intro: `Press <strong>Start WebRTC flow</strong> and watch how the diagram, lifelines, and log follow the exact steps. The <strong>SIGNALING SERVER</strong> (Python HTTP server) sends SDP offers and answers. <strong>STUN</strong> discovers public IP addresses for NAT traversal. <strong>TURN</strong> provides media relay as fallback when direct P2P connection is not possible.`,
+      startBtn: "Start WebRTC flow",
+      networkTopology: "Network Topology",
+      iceAnalysis: "ICE Candidate Analysis",
+      timelineLog: "Timeline log",
+      logWebStun1: 'Browser starts contacting STUN for ICE candidates. (time 1)',
+      logStunWeb2: 'ICE gathering complete; candidates now known in the browser. (time 2)',
+      logWebTurn3: 'Requesting relay allocation from TURN server. (time 3)',
+      logTurnWeb4: 'TURN relay candidate allocated. (time 4)',
+      logWebSignaling5: 'Sending offer with ICE candidates to signaling server /offer… (time 5)',
+      logSignalingPython6: 'Signaling server forwards offer to PYTHON WEBRTC. (time 6)',
+      logPythonStun7: 'Python ICE gathering in background (check server console). (time 7)',
+      logStunPython8: 'STUN sends candidates back to Python. (time 8)',
+      logPythonTurn9: 'Python requests TURN relay allocation. (time 9)',
+      logTurnPython10: 'TURN relay allocation (may timeout if unavailable). (time 10)',
+      logPythonSignaling11: 'Python sends answer back to signaling server. (time 11)',
+      logSignalingWeb12: 'Signaling server forwards answer to WEB CLIENT. (time 12)',
+    },
+    nl: {
+      intro: `Druk op <strong>Start WebRTC flow</strong> en kijk hoe diagram, lifelines en log exact de stappen volgen. De <strong>SIGNALING SERVER</strong> (Python HTTP server) verzendt SDP offers en answers. <strong>STUN</strong> ontdekt publieke IP-adressen voor NAT traversal. <strong>TURN</strong> biedt media relay als fallback wanneer directe P2P connectie niet mogelijk is.`,
+      startBtn: "Start WebRTC flow",
+      networkTopology: "Netwerktopologie",
+      iceAnalysis: "ICE Kandidaat Analyse",
+      timelineLog: "Tijdlijn log",
+      logWebStun1: 'Browser start met contact opnemen met STUN voor ICE kandidaten. (tijd 1)',
+      logStunWeb2: 'ICE verzameling compleet; kandidaten nu bekend in de browser. (tijd 2)',
+      logWebTurn3: 'Aanvragen van relay toewijzing van TURN server. (tijd 3)',
+      logTurnWeb4: 'TURN relay kandidaat toegewezen. (tijd 4)',
+      logWebSignaling5: 'Verzenden van aanbod met ICE kandidaten naar signaling server /offer… (tijd 5)',
+      logSignalingPython6: 'Signaling server stuurt aanbod door naar PYTHON WEBRTC. (tijd 6)',
+      logPythonStun7: 'Python ICE verzameling op de achtergrond (check server console). (tijd 7)',
+      logStunPython8: 'STUN stuurt kandidaten terug naar Python. (tijd 8)',
+      logPythonTurn9: 'Python vraagt TURN relay toewijzing aan. (tijd 9)',
+      logTurnPython10: 'TURN relay toewijzing (kan timeout als niet beschikbaar). (tijd 10)',
+      logPythonSignaling11: 'Python stuurt antwoord terug naar signaling server. (tijd 11)',
+      logSignalingWeb12: 'Signaling server stuurt antwoord door naar WEB CLIENT. (tijd 12)',
+    }
+  };
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    const t = translations[lang];
+    document.querySelector('[data-i18n="intro"]').innerHTML = t.intro;
+    document.getElementById('startBtn').textContent = t.startBtn;
+    document.querySelector('[data-i18n="networkTopology"]').textContent = t.networkTopology;
+    document.querySelector('[data-i18n="iceAnalysis"]').textContent = t.iceAnalysis;
+    document.querySelector('[data-i18n="timelineLog"]').textContent = t.timelineLog;
+  }
 
   // Time measurement
   let startTime = null;
@@ -953,6 +1029,11 @@
     matchAnalysisEl.innerHTML = diagnosis;
   }
 
+  const languageSelect = document.getElementById('language-select');
+  languageSelect.addEventListener('change', (e) => {
+    setLanguage(e.target.value);
+  });
+
   startBtn.onclick = async () => {
     startBtn.disabled = true;
     logEl.textContent = '';
@@ -975,10 +1056,21 @@
   };
 
   async function startWebRTCFlow() {
-    // 1. Local media
-    addLog('WEB CLIENT', 'Requesting camera/mic…', 'tag-web');
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-    localVideo.srcObject = stream;
+    // 1. Local media (optional - the demo receives video from Python, doesn't require local camera)
+    let stream = new MediaStream(); // Start with empty stream
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      addLog('WEB CLIENT', 'Requesting camera/mic…', 'tag-web');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        localVideo.srcObject = stream;
+      } catch (e) {
+        addLog('WEB CLIENT', 'Camera access denied or unavailable: ' + e.message + '. Continuing without local video.', 'tag-web');
+        // Continue with empty stream - Python will still send video to us
+      }
+    } else {
+      addLog('WEB CLIENT', 'Camera API not available (non-HTTPS context). Continuing without local video - will still receive from Python.', 'tag-web');
+    }
 
     // 2. PeerConnection met STUN/TURN
     addLog('WEB CLIENT', 'Creating RTCPeerConnection with STUN/TURN servers…', 'tag-web');
@@ -1004,7 +1096,14 @@
       iceCandidatePoolSize: 10
     });
 
-    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    // Add local tracks if we have them
+    if (stream.getTracks().length > 0) {
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    } else {
+      // No local camera - add a recvonly transceiver so we can still receive video from Python
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      addLog('WEB CLIENT', 'No local video - set up to receive video only', 'tag-web');
+    }
 
     pc.addEventListener('track', event => {
       addLog('WEB CLIENT', 'Received remote track from PYTHON WEBRTC.', 'tag-web');
@@ -1017,12 +1116,12 @@
       addLog('WEB CLIENT', 'ICE gathering state: ' + pc.iceGatheringState, 'tag-web');
       if (pc.iceGatheringState === 'gathering') {
         setTimeValue('time1');
-        addLog('WEB → STUN', 'Browser starts contacting STUN for ICE candidates. (tijd 1)', 'tag-stun');
+        addLog('WEB → STUN', translations[currentLang].logWebStun1, 'tag-stun');
         activateArrow('web-stun', '1');
       }
       if (pc.iceGatheringState === 'complete') {
         setTimeValue('time2');
-        addLog('STUN → WEB', 'ICE gathering complete; candidates now known in the browser. (tijd 2)', 'tag-stun');
+        addLog('STUN → WEB', translations[currentLang].logStunWeb2, 'tag-stun');
         activateArrow('stun-web', '2');
       }
     });
@@ -1047,11 +1146,11 @@
         if (event.candidate.candidate.includes('relay') && !hasTurnCandidate) {
           hasTurnCandidate = true;
           setTimeValue('time3');
-          addLog('WEB → TURN', 'Requesting relay allocation from TURN server. (tijd 3)', 'tag-stun');
+          addLog('WEB → TURN', translations[currentLang].logWebTurn3, 'tag-stun');
           activateArrow('web-turn', '3');
           setTimeout(() => {
             setTimeValue('time4');
-            addLog('TURN → WEB', 'TURN relay candidate allocated. (tijd 4)', 'tag-stun');
+            addLog('TURN → WEB', translations[currentLang].logTurnWeb4, 'tag-stun');
             activateArrow('turn-web', '4');
           }, 100);
         }
@@ -1190,13 +1289,13 @@
     }
 
     setTimeValue('time5');
-    addLog('WEB → SIGNALING', 'Sending offer with ICE candidates to signaling server /offer… (tijd 5)', 'tag-signaling');
+    addLog('WEB → SIGNALING', translations[currentLang].logWebSignaling5, 'tag-signaling');
     activateArrow('web-signaling', '5');
 
     // Simulate signaling server forwarding to Python
     await new Promise(r => setTimeout(r, 100));
     setTimeValue('time6');
-    addLog('SIGNALING → PYTHON', 'Signaling server forwards offer to PYTHON WEBRTC. (tijd 6)', 'tag-signaling');
+    addLog('SIGNALING → PYTHON', translations[currentLang].logSignalingPython6, 'tag-signaling');
     activateArrow('signaling-python', '6');
 
     const response = await fetch('/offer', {
@@ -1210,23 +1309,23 @@
 
     // Show Python ICE gathering (happens during offer processing)
     setTimeValue('time7');
-    addLog('PYTHON → STUN', 'Python ICE gathering in background (check server console). (tijd 7)', 'tag-python');
+    addLog('PYTHON → STUN', translations[currentLang].logPythonStun7, 'tag-python');
     activateArrow('python-stun', '7');
 
     await new Promise(r => setTimeout(r, 100));
     setTimeValue('time8');
-    addLog('STUN → PYTHON', 'STUN sends candidates back to Python. (tijd 8)', 'tag-stun');
+    addLog('STUN → PYTHON', translations[currentLang].logStunPython8, 'tag-stun');
     activateArrow('stun-python', '8');
 
     // Python TURN request (if configured)
     await new Promise(r => setTimeout(r, 100));
     setTimeValue('time9');
-    addLog('PYTHON → TURN', 'Python requests TURN relay allocation. (tijd 9)', 'tag-python');
+    addLog('PYTHON → TURN', translations[currentLang].logPythonTurn9, 'tag-python');
     activateArrow('python-turn', '9');
 
     await new Promise(r => setTimeout(r, 100));
     setTimeValue('time10');
-    addLog('TURN → PYTHON', 'TURN relay allocation (may timeout if unavailable). (tijd 10)', 'tag-stun');
+    addLog('TURN → PYTHON', translations[currentLang].logTurnPython10, 'tag-stun');
     activateArrow('turn-python', '10');
 
     const answer = await response.json();
@@ -1258,12 +1357,12 @@
     }
     
     setTimeValue('time11');
-    addLog('PYTHON → SIGNALING', 'Python sends answer back to signaling server. (tijd 11)', 'tag-signaling');
+    addLog('PYTHON → SIGNALING', translations[currentLang].logPythonSignaling11, 'tag-signaling');
     activateArrow('python-signaling', '11');
 
     await new Promise(r => setTimeout(r, 100));
     setTimeValue('time12');
-    addLog('SIGNALING → WEB', 'Signaling server forwards answer to WEB CLIENT. (tijd 12)', 'tag-signaling');
+    addLog('SIGNALING → WEB', translations[currentLang].logSignalingWeb12, 'tag-signaling');
     activateArrow('signaling-web', '12');
 
     await pc.setRemoteDescription(answer);
