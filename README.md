@@ -136,22 +136,11 @@ Open `tests/test_client.html` in a browser to run the client-side tests. These t
 - WebRTC API availability
 - MediaStream handling
 
-## Project Structure
+## Files
 
-```
-webrtc-demo/
-├── server.py              # Python WebRTC server with signaling endpoints
-├── static/
-│   └── index.html         # Web client with interactive diagram
-├── tests/
-│   ├── __init__.py
-│   ├── test_server.py     # Python server tests
-│   └── test_client.html   # JavaScript client tests
-├── requirements.txt       # Runtime dependencies
-├── requirements-test.txt  # Test dependencies
-├── pytest.ini             # Pytest configuration
-└── README.md              # This file
-```
+- `server.py` - Python WebRTC server with signaling endpoints
+- `static/index.html` - Web client with interactive diagram
+- `requirements.txt` - Python dependencies
 
 ## How It Works
 
